@@ -1,0 +1,11 @@
+{
+    "name": "dbt-ui",
+    "version": "0.0.1",
+    "type": "module",
+    "bin": {
+        "dbt-ui": "src/index.ts"
+    },
+    "dependencies": {
+        "@dbt-ui/core": "0.0.1"
+    }
+}
