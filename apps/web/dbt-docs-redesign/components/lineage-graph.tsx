@@ -1,0 +1,1008 @@
+"use client";
+
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import { useRouter } from "next/navigation";
+import {
+  X,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Search,
+  ChevronDown,
+  RefreshCw,
+  GitBranch,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import type { ModelSummary, Materialization, ResourceType } from "@/lib/types";
+
+// Constants - Optimized for readability with larger nodes and better spacing
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 48;
+const ARROW_SIZE = 8;
+const LEVEL_GAP_X = 320;
+const NODE_GAP_Y = 80;
+const GRID_SIZE = 0;
+
+// Paleta "Professional Light Blueprint"
+const BG_COLOR = "#f8fafc"; // Slate 50 (Fondo claro limpio)
+const NODE_COLOR = "#ffffff"; // White (Nodos limpios)
+const NODE_SELECTED_COLOR = "#0ea5e9"; // Sky 500
+const NODE_HOVER_COLOR = "#e0f2fe"; // Sky 100
+const TEXT_COLOR = "#0f172a"; // Slate 900 (Texto legible)
+const EDGE_COLOR = "#cbd5e1"; // Slate 300 (Conexiones sutiles)
+const EDGE_HIGHLIGHT_COLOR = "#0ea5e9"; // Sky 500
+
+const MATERIALIZATION_COLORS: Record<string, string> = {
+  table: "#ffffff",
+  view: "#ffffff",
+  incremental: "#ffffff",
+  snapshot: "#ffffff",
+  seed: "#ffffff",
+  default: "#ffffff",
+};
+
+// Polyfill for roundRect to support older browsers
+if (typeof window !== 'undefined' && typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x: number, y: number, w: number, h: number, r: any) {
+    if (typeof r === 'number') r = [r, r, r, r];
+    this.beginPath();
+    this.moveTo(x + r[0], y);
+    this.lineTo(x + w - r[1], y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+    this.lineTo(x + w, y + h - r[2]);
+    this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+    this.lineTo(x + r[3], y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+    this.lineTo(x, y + r[0]);
+    this.quadraticCurveTo(x, y, x + r[0], y);
+    this.closePath();
+    return this;
+  };
+}
+
+interface GraphNode {
+  id: string;
+  label: string;
+  materialization: Materialization;
+  resourceType: ResourceType;
+  schema: string;
+  package: string;
+  tags: string[];
+  x: number;
+  y: number;
+  level: number;
+}
+
+interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+interface LineageGraphProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  models: ModelSummary[];
+  selectedModelId?: string | null;
+}
+
+// Build a DAG with hierarchical layout
+function buildDAGLayout(
+  models: ModelSummary[],
+  edges: GraphEdge[],
+  canvasWidth: number,
+  canvasHeight: number
+): GraphNode[] {
+  if (models.length === 0) return [];
+
+  const nodeMap = new Map<string, GraphNode>();
+  const inDegree = new Map<string, number>();
+  const outEdges = new Map<string, string[]>();
+
+  models.forEach((m) => {
+    nodeMap.set(m.unique_id, {
+      id: m.unique_id,
+      label: m.name,
+      materialization: m.materialization,
+      resourceType: m.resource_type,
+      schema: m.schema,
+      package: m.package_name,
+      tags: m.tags,
+      x: 0,
+      y: 0,
+      level: 0,
+    });
+    inDegree.set(m.unique_id, 0);
+    outEdges.set(m.unique_id, []);
+  });
+
+  edges.forEach((e) => {
+    if (nodeMap.has(e.source) && nodeMap.has(e.target)) {
+      outEdges.get(e.source)?.push(e.target);
+      inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+    }
+  });
+
+  const queue: string[] = [];
+  nodeMap.forEach((_, id) => {
+    if (inDegree.get(id) === 0) queue.push(id);
+  });
+
+  const levels: string[][] = [];
+  while (queue.length > 0) {
+    const levelNodes: string[] = [];
+    const levelSize = queue.length;
+    for (let i = 0; i < levelSize; i++) {
+      const nodeId = queue.shift()!;
+      levelNodes.push(nodeId);
+      nodeMap.get(nodeId)!.level = levels.length;
+      outEdges.get(nodeId)?.forEach((targetId) => {
+        const newDegree = (inDegree.get(targetId) || 1) - 1;
+        inDegree.set(targetId, newDegree);
+        if (newDegree === 0) queue.push(targetId);
+      });
+    }
+    if (levelNodes.length > 0) levels.push(levelNodes);
+  }
+
+  nodeMap.forEach((node, id) => {
+    if (!levels.flat().includes(id)) {
+      if (levels.length === 0) levels.push([]);
+      levels[levels.length - 1].push(id);
+      node.level = levels.length - 1;
+    }
+  });
+
+  const totalWidth = levels.length * LEVEL_GAP_X;
+  const startX = Math.max(100, (canvasWidth - totalWidth) / 2);
+
+  levels.forEach((levelNodes, levelIdx) => {
+    const totalHeight = levelNodes.length * NODE_GAP_Y;
+    const startY = Math.max(80, (canvasHeight - totalHeight) / 2);
+    levelNodes.forEach((nodeId, nodeIdx) => {
+      const node = nodeMap.get(nodeId)!;
+      node.x = startX + levelIdx * LEVEL_GAP_X;
+      node.y = startY + nodeIdx * NODE_GAP_Y;
+    });
+  });
+
+  return Array.from(nodeMap.values());
+}
+
+function generateEdges(models: ModelSummary[]): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+  const edgeSet = new Set<string>();
+  const prefixOrder = ["src", "stg", "int", "fct", "dim", "rpt", "agg", "mart"];
+
+  models.forEach((model) => {
+    const nameParts = model.name.split("_");
+    const prefix = nameParts[0];
+    const domain = nameParts.slice(1, 3).join("_");
+    const prefixIdx = prefixOrder.indexOf(prefix);
+
+    models.forEach((other) => {
+      if (model.unique_id === other.unique_id) return;
+      const otherParts = other.name.split("_");
+      const otherPrefix = otherParts[0];
+      const otherDomain = otherParts.slice(1, 3).join("_");
+      const otherPrefixIdx = prefixOrder.indexOf(otherPrefix);
+
+      if (domain === otherDomain && prefixIdx >= 0 && otherPrefixIdx === prefixIdx + 1) {
+        const edgeKey = `${model.unique_id}->${other.unique_id}`;
+        if (!edgeSet.has(edgeKey)) {
+          edgeSet.add(edgeKey);
+          edges.push({ id: edgeKey, source: model.unique_id, target: other.unique_id });
+        }
+      }
+    });
+  });
+
+  // Cross-domain connections for realism
+  const factModels = models.filter((m) => m.name.startsWith("fct_"));
+  const dimModels = models.filter((m) => m.name.startsWith("dim_"));
+  factModels.slice(0, 5).forEach((fact, i) => {
+    const dim = dimModels[i % dimModels.length];
+    if (dim) {
+      const edgeKey = `${dim.unique_id}->${fact.unique_id}`;
+      if (!edgeSet.has(edgeKey)) {
+        edgeSet.add(edgeKey);
+        edges.push({ id: edgeKey, source: dim.unique_id, target: fact.unique_id });
+      }
+    }
+  });
+
+  return edges;
+}
+
+export function LineageGraph({
+  open,
+  onOpenChange,
+  models,
+  selectedModelId,
+}: LineageGraphProps) {
+  const router = useRouter();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 700 });
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.8 });
+  const [dragging, setDragging] = useState<{ startX: number; startY: number } | null>(null);
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [animationFrame, setAnimationFrame] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isAutoLayout, setIsAutoLayout] = useState(true);
+  const [nodes, setNodes] = useState<GraphNode[]>([]);
+  const [showFilters, setShowFilters] = useState(true);
+
+  // Filters
+  const [selectedResources, setSelectedResources] = useState<Set<ResourceType>>(new Set(["model", "seed", "snapshot"]));
+  const [selectedPackages, setSelectedPackages] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [selectInput, setSelectInput] = useState("");
+  const [excludeInput, setExcludeInput] = useState("");
+
+  const allPackages = useMemo(() => [...new Set(models.map((m) => m.package_name))], [models]);
+  const allTags = useMemo(() => [...new Set(models.flatMap((m) => m.tags))], [models]);
+
+  const filteredModels = useMemo(() => {
+    let result = models;
+    result = result.filter((m) => selectedResources.has(m.resource_type));
+    if (selectedPackages.size > 0) result = result.filter((m) => selectedPackages.has(m.package_name));
+    if (selectedTags.size > 0) result = result.filter((m) => m.tags.some((t) => selectedTags.has(t)));
+    if (selectInput.trim()) result = result.filter((m) => m.name.toLowerCase().includes(selectInput.toLowerCase()));
+    if (excludeInput.trim()) result = result.filter((m) => !m.name.toLowerCase().includes(excludeInput.toLowerCase()));
+    return result.slice(0, 150);
+  }, [models, selectedResources, selectedPackages, selectedTags, selectInput, excludeInput]);
+
+  const edges = useMemo(() => generateEdges(filteredModels), [filteredModels]);
+
+  // Initialize and update nodes layout
+  useEffect(() => {
+    if (isAutoLayout) {
+      const layoutNodes = buildDAGLayout(filteredModels, edges, dimensions.width * 2, dimensions.height * 2);
+      setNodes(layoutNodes);
+    }
+  }, [filteredModels, edges, dimensions, isAutoLayout]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return nodes.filter((n) => n.label.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 10);
+  }, [searchQuery, nodes]);
+
+  const highlightedLineage = useMemo(() => {
+    const activeId = selectedModelId || hoveredNode?.id;
+    if (!activeId) return new Set<string>();
+
+    const connectedNodes = new Set<string>([activeId]);
+    const adj = new Map<string, string[]>();
+    const revAdj = new Map<string, string[]>();
+
+    edges.forEach(e => {
+      if (!adj.has(e.source)) adj.set(e.source, []);
+      if (!revAdj.has(e.target)) revAdj.set(e.target, []);
+      adj.get(e.source)?.push(e.target);
+      revAdj.get(e.target)?.push(e.source);
+    });
+
+    const stack = [activeId];
+    while (stack.length > 0) {
+      const curr = stack.pop()!;
+      revAdj.get(curr)?.forEach(parent => {
+        if (!connectedNodes.has(parent)) { connectedNodes.add(parent); stack.push(parent); }
+      });
+    }
+    stack.push(activeId);
+    while (stack.length > 0) {
+      const curr = stack.pop()!;
+      adj.get(curr)?.forEach(child => {
+        if (!connectedNodes.has(child)) { connectedNodes.add(child); stack.push(child); }
+      });
+    }
+    return connectedNodes;
+  }, [selectedModelId, hoveredNode, edges]);
+
+  // Center logic
+  const centerNode = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (node) {
+      setTransform({
+        x: dimensions.width / 2 - node.x * transform.scale,
+        y: dimensions.height / 2 - node.y * transform.scale,
+        scale: transform.scale,
+      });
+    }
+  }, [nodes, dimensions, transform.scale]);
+
+  const handleFit = useCallback(() => {
+    if (nodes.length === 0) return;
+    const minX = Math.min(...nodes.map(n => n.x - NODE_WIDTH / 2));
+    const maxX = Math.max(...nodes.map(n => n.x + NODE_WIDTH / 2));
+    const minY = Math.min(...nodes.map(n => n.y - NODE_HEIGHT / 2));
+    const maxY = Math.max(...nodes.map(n => n.y + NODE_HEIGHT / 2));
+    const graphW = maxX - minX;
+    const graphH = maxY - minY;
+    const padding = 100;
+    const scale = Math.min(0.8, (dimensions.width - padding) / graphW, (dimensions.height - padding) / graphH);
+    setTransform({
+      x: dimensions.width / 2 - (minX + graphW / 2) * scale,
+      y: dimensions.height / 2 - (minY + graphH / 2) * scale,
+      scale
+    });
+  }, [nodes, dimensions]);
+
+  // Animation Loop
+  useEffect(() => {
+    let frame: number;
+    const animate = () => {
+      setAnimationFrame(prev => prev + 1);
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Dimensions (no callbacks here to avoid circular updates)
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      } else if (layoutRef.current) {
+        setDimensions({
+          width: layoutRef.current.clientWidth,
+          height: layoutRef.current.clientHeight,
+        });
+      }
+    };
+    update();
+    window.addEventListener("resize", update);
+    const timer = setTimeout(update, 100);
+    return () => { window.removeEventListener("resize", update); clearTimeout(timer); };
+  }, [open]);
+
+  // Recalculate dimensions on fullscreen toggle to keep coordinates aligned
+  useEffect(() => {
+    const update = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      } else if (layoutRef.current) {
+        setDimensions({
+          width: layoutRef.current.clientWidth,
+          height: layoutRef.current.clientHeight,
+        });
+      }
+    };
+    const timer = setTimeout(update, 50);
+    return () => clearTimeout(timer);
+  }, [isFullscreen]);
+
+  // Initial fit/center when opening or when selected model changes
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => {
+      if (selectedModelId) centerNode(selectedModelId);
+      else handleFit();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [open, selectedModelId, centerNode, handleFit]);
+
+  // Ensure filters are visible when opening the graph
+  useEffect(() => {
+    if (open) setShowFilters(true);
+  }, [open]);
+
+  // Canvas Drawing
+  const drawEdge = useCallback((ctx: CanvasRenderingContext2D, s: GraphNode, t: GraphNode, highlight: boolean, dimmed: boolean) => {
+    const { x: sx, y: sy } = s;
+    const { x: tx, y: ty } = t;
+    const startX = sx + NODE_WIDTH / 2;
+    const startY = sy + NODE_HEIGHT / 2;
+    const endX = tx - NODE_WIDTH / 2;
+    const endY = ty + NODE_HEIGHT / 2;
+    const midX = (startX + endX) / 2;
+
+    // Draw Bezier Path - Improved visibility with better contrast
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.bezierCurveTo(midX, startY, midX, endY, endX, endY);
+    ctx.strokeStyle = highlight ? EDGE_HIGHLIGHT_COLOR : EDGE_COLOR;
+    ctx.lineWidth = highlight ? 3 : 2;
+    ctx.stroke();
+
+    if (highlight) {
+      // Animated dash for highlighted edges
+      ctx.setLineDash([6, 8]);
+      ctx.lineDashOffset = -animationFrame * 0.5;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 3;
+    }
+
+    if (!dimmed) {
+      const angle = Math.atan2(endY - startY, endX - midX);
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - ARROW_SIZE * Math.cos(angle - Math.PI / 6), endY - ARROW_SIZE * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(endX - ARROW_SIZE * Math.cos(angle + Math.PI / 6), endY - ARROW_SIZE * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fillStyle = highlight ? EDGE_HIGHLIGHT_COLOR : "rgba(255,255,255,0.2)";
+      ctx.fill();
+    }
+  }, [animationFrame]);
+
+  const drawNode = useCallback((ctx: CanvasRenderingContext2D, node: GraphNode, isSel: boolean, isHov: boolean, isHigh: boolean, isDim: boolean) => {
+    const x = node.x - NODE_WIDTH / 2;
+    const y = node.y - NODE_HEIGHT / 2;
+    const opacity = isDim ? 0.2 : 1;
+    const accent = MATERIALIZATION_COLORS[node.materialization] || MATERIALIZATION_COLORS.default;
+    ctx.globalAlpha = opacity;
+
+    if (isSel || isHov) {
+      ctx.shadowColor = isSel ? NODE_SELECTED_COLOR : "rgba(34, 211, 238, 0.4)";
+      ctx.shadowBlur = isSel ? 30 : 20;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, NODE_WIDTH, NODE_HEIGHT, 8); // Rounded corners más sutiles
+    ctx.fillStyle = isSel ? NODE_SELECTED_COLOR : (isHov || isHigh) ? NODE_HOVER_COLOR : "rgba(91, 165, 189, 0.85)";
+    ctx.fill();
+
+    // Border para mejor definición
+    ctx.strokeStyle = isSel ? "#06b6d4" : "rgba(255, 255, 255, 0.1)";
+    ctx.lineWidth = isSel ? 2 : 1;
+    ctx.stroke();
+
+    // Texto legible optimizado para tamaño mejorado
+    ctx.fillStyle = isSel ? "#0a1f2a" : TEXT_COLOR;
+    ctx.font = "bold 13px 'Geist', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const maxWidth = NODE_WIDTH - 20;
+    let displayText = node.label.toLowerCase();
+    // Truncate text if too long
+    while (ctx.measureText(displayText).width > maxWidth && displayText.length > 0) {
+      displayText = displayText.slice(0, -1);
+    }
+    if (displayText.length < node.label.length) displayText += '...';
+    ctx.fillText(displayText, x + NODE_WIDTH / 2, y + NODE_HEIGHT / 2);
+
+    ctx.globalAlpha = 1;
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = dimensions.width * dpr;
+    canvas.height = dimensions.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Fondo sólido y limpio como en la imagen
+    ctx.fillStyle = BG_COLOR;
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+    ctx.save();
+    ctx.translate(transform.x, transform.y);
+    ctx.scale(transform.scale, transform.scale);
+
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const activeContext = highlightedLineage.size > 0 || searchResults.length > 0;
+    const searchMatchIds = new Set(searchResults.map(r => r.id));
+
+    edges.forEach(e => {
+      const s = nodeMap.get(e.source);
+      const t = nodeMap.get(e.target);
+      if (s && t) {
+        const high = highlightedLineage.has(s.id) && highlightedLineage.has(t.id);
+        const dim = activeContext && !high;
+        drawEdge(ctx, s, t, high, dim);
+      }
+    });
+
+    nodes.forEach(n => {
+      const isSel = n.id === selectedModelId;
+      const isHov = hoveredNode?.id === n.id;
+      const isHigh = highlightedLineage.has(n.id);
+      const isMatch = searchMatchIds.has(n.id);
+      const dim = activeContext && !isHigh && !isMatch;
+      drawNode(ctx, n, isSel, isHov, isHigh || isMatch, dim);
+    });
+
+    ctx.restore();
+
+    // Minimap Render
+    if (nodes.length > 0) {
+      const miniMapW = 180;
+      const miniMapH = 120;
+      const miniMapX = 20; // Moved to left side
+      const miniMapY = 20;
+
+      ctx.save();
+      // Minimap Background Glass
+      ctx.fillStyle = "rgba(10, 10, 15, 0.8)";
+      ctx.beginPath();
+      ctx.roundRect(miniMapX, miniMapY, miniMapW, miniMapH, 4);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      ctx.stroke();
+
+      // Mini HUD borders (top-left and bottom-right corners)
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // TL corner (top-left)
+      ctx.moveTo(miniMapX, miniMapY + 8);
+      ctx.lineTo(miniMapX, miniMapY);
+      ctx.lineTo(miniMapX + 8, miniMapY);
+      // BR corner (bottom-right)
+      ctx.moveTo(miniMapX + miniMapW - 8, miniMapY + miniMapH);
+      ctx.lineTo(miniMapX + miniMapW, miniMapY + miniMapH);
+      ctx.lineTo(miniMapX + miniMapW, miniMapY + miniMapH - 8);
+      ctx.stroke();
+
+      // Find viewport in world coordinates
+      const worldMinX = Math.min(...nodes.map(n => n.x)) - 300;
+      const worldMaxX = Math.max(...nodes.map(n => n.x)) + 300;
+      const worldMinY = Math.min(...nodes.map(n => n.y)) - 300;
+      const worldMaxY = Math.max(...nodes.map(n => n.y)) + 300;
+      const worldW = worldMaxX - worldMinX;
+      const worldH = worldMaxY - worldMinY;
+      const miniScale = Math.min(miniMapW / worldW, miniMapH / worldH) * 0.9;
+
+      // Draw Nodes in Minimap
+      nodes.forEach(n => {
+        const mx = miniMapX + (n.x - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
+        const my = miniMapY + (n.y - worldMinY) * miniScale + (miniMapH - worldH * miniScale) / 2;
+        ctx.fillStyle = n.id === selectedModelId ? NODE_SELECTED_COLOR : "rgba(91, 165, 189, 0.5)";
+        ctx.beginPath();
+        ctx.arc(mx, my, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw Viewport Rect
+      const vpX = miniMapX + ((-transform.x / transform.scale) - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
+      const vpY = miniMapY + ((-transform.y / transform.scale) - worldMinY) * miniScale + (miniMapH - worldH * miniScale) / 2;
+      const vpW = (dimensions.width / transform.scale) * miniScale;
+      const vpH = (dimensions.height / transform.scale) * miniScale;
+      ctx.strokeStyle = NODE_SELECTED_COLOR;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(vpX, vpY, vpW, vpH);
+      ctx.restore();
+    }
+  }, [nodes, edges, transform, dimensions, animationFrame, highlightedLineage, searchResults, drawEdge, drawNode, selectedModelId, hoveredNode]);
+
+  // Interactivity
+  const screenToWorld = useCallback((sx: number, sy: number) => {
+    // Use canvas bounds directly; getBoundingClientRect aligns with pointer events
+    if (!canvasRef.current) return { x: 0, y: 0 };
+    const rect = canvasRef.current.getBoundingClientRect();
+    return { x: (sx - rect.left - transform.x) / transform.scale, y: (sy - rect.top - transform.y) / transform.scale };
+  }, [transform]);
+
+  const findNode = useCallback((wx: number, wy: number) => {
+    return nodes.find(n => Math.abs(n.x - wx) < NODE_WIDTH / 2 && Math.abs(n.y - wy) < NODE_HEIGHT / 2);
+  }, [nodes]);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    const world = screenToWorld(e.clientX, e.clientY);
+    const node = findNode(world.x, world.y);
+    if (node) {
+      setDraggingNode(node.id);
+      setIsAutoLayout(false); // Switch to manual when dragging starts
+      // No auto-zoom - user controls zoom manually
+    } else {
+      setDragging({ startX: e.clientX, startY: e.clientY });
+    }
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const world = screenToWorld(e.clientX, e.clientY);
+    setHoveredNode(findNode(world.x, world.y) || null);
+
+    if (draggingNode) {
+      setNodes(prev => prev.map(n =>
+        n.id === draggingNode ? { ...n, x: world.x, y: world.y } : n
+      ));
+    } else if (dragging) {
+      const deltaX = e.clientX - dragging.startX;
+      const deltaY = e.clientY - dragging.startY;
+      setTransform(t => ({ ...t, x: t.x + deltaX, y: t.y + deltaY }));
+      setDragging({ startX: e.clientX, startY: e.clientY });
+    }
+  };
+
+  const onMouseUp = () => {
+    setDragging(null);
+    setDraggingNode(null);
+  };
+  const onWheel = (e: React.WheelEvent) => {
+    const delta = e.deltaY > 0 ? 0.95 : 1.05;
+    setTransform(t => ({ ...t, scale: Math.max(0.15, Math.min(3, t.scale * delta)) }));
+  };
+  const onDblClick = (e: React.MouseEvent) => {
+    const world = screenToWorld(e.clientX, e.clientY);
+    const node = findNode(world.x, world.y);
+    if (node) { router.push(`/model/${encodeURIComponent(node.id)}`); onOpenChange(false); }
+  };
+
+  const toggleFullscreen = () => {
+    if (!layoutRef.current) return;
+    if (!document.fullscreenElement) {
+      layoutRef.current.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      setIsFullscreen(true);
+      setTimeout(handleFit, 200); // Re-center once in fullscreen
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+      setTimeout(handleFit, 200);
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const dialogClasses = cn(
+    "p-0 gap-0 overflow-hidden bg-white border-sky-200 shadow-2xl flex flex-col",
+    isFullscreen
+      ? "!top-0 !left-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !rounded-none"
+      : "max-w-[98vw] w-[1920px] h-[95vh]"
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={dialogClasses}>
+        <DialogTitle className="sr-only">Lineage Graph</DialogTitle>
+        <div
+          ref={layoutRef}
+          className={cn(
+            "flex flex-col flex-1 dark-section relative transition-all duration-500",
+            isFullscreen && "h-full w-full rounded-none"
+          )}
+        >
+          {/* Compact Header */}
+          <div className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-slate-900/95 border-b dark-section-border z-10 backdrop-blur-sm">
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex flex-col">
+                <h2 className="text-xs md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.3em] flex items-center gap-1.5 md:gap-2 text-white">
+                  <GitBranch className="h-3.5 w-3.5 md:h-4 md:w-4 text-sky-400" />
+                  <span className="hidden sm:inline">Gráfico de Linaje</span>
+                  <span className="sm:hidden">Lineage</span>
+                </h2>
+                <span className="hidden sm:block text-[10px] font-mono text-slate-400 uppercase tracking-wide mt-0.5">
+                  {nodes.length} nodos activos
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="relative hidden md:block">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                <Input
+                  placeholder="Buscar nodo..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                  className="pl-9 h-10 w-64 bg-slate-800/60 border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500"
+                />
+                {searchFocused && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 border border-slate-700 rounded-xl overflow-hidden z-50 backdrop-blur-xl">
+                    {searchResults.map(n => (
+                      <button key={n.id} className="w-full text-left p-3 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-sky-500/20" onClick={() => centerNode(n.id)}>
+                        {n.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
+                <X className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+            </div>
+          </div>
+
+          <div
+            ref={containerRef}
+            className="flex-1 relative overflow-hidden group/canvas bg-[#0b1221]"
+          >
+            {/* Floating Controls - Top Right (responsive) */}
+            <div className="absolute top-3 right-3 md:top-4 md:right-4 z-30 flex flex-col gap-2">
+              {/* Zoom Controls */}
+              <div className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-1 flex flex-col gap-1 backdrop-blur-xl shadow-xl">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400 transition-colors"
+                  onClick={() => setTransform(t => ({ ...t, scale: Math.min(3, t.scale + 0.2) }))}
+                  title="Zoom In (+)">
+                  <ZoomIn className="h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+                <div className="px-2 py-1 text-[10px] md:text-xs font-mono text-center font-bold text-slate-500">
+                  {Math.round(transform.scale * 100)}%
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400 transition-colors"
+                  onClick={() => setTransform(t => ({ ...t, scale: Math.max(0.1, t.scale - 0.2) }))}
+                  title="Zoom Out (-)">
+                  <ZoomOut className="h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-1 flex flex-col gap-1 backdrop-blur-xl shadow-xl">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 md:h-10 md:w-10 text-slate-400 transition-all hover:bg-sky-500/20 hover:text-sky-400",
+                    isFullscreen && "bg-sky-500/20 text-sky-400"
+                  )}
+                  onClick={toggleFullscreen}
+                  title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Mode"}
+                >
+                  <Maximize2 className="h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 md:h-10 md:w-10 text-slate-400 transition-all hover:bg-sky-500/20 hover:text-sky-400",
+                    !isAutoLayout && "bg-sky-500/20 text-sky-400"
+                  )}
+                  onClick={() => setIsAutoLayout(!isAutoLayout)}
+                  title={isAutoLayout ? "Manual Mode" : "Auto Layout"}
+                >
+                  <RefreshCw className={cn("h-4 w-4 md:h-5 md:w-5", !isAutoLayout && "animate-[spin_3s_linear_infinite]")} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Floating Filters Toggle - Bottom Left (responsive) */}
+            <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 z-30">
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "bg-slate-900/90 border-slate-700/50 text-slate-300 hover:bg-sky-500/20 hover:text-sky-400 hover:border-sky-500/30 transition-all h-9 md:h-10 px-3 md:px-4 gap-2 backdrop-blur-xl shadow-xl",
+                  showFilters && "bg-sky-500/10 border-sky-500/30 text-sky-400"
+                )}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">
+                  {showFilters ? "Hide" : "Filters"}
+                </span>
+                <ChevronDown className={cn("h-3 w-3 md:h-4 md:w-4 transition-transform", showFilters && "rotate-180")} />
+              </Button>
+            </div>
+
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full cursor-grab active:cursor-grabbing"
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseUp}
+              onWheel={onWheel}
+              onDoubleClick={onDblClick}
+            />
+            {hoveredNode && (
+              <div className="absolute bottom-6 left-6 glass border border-sky-500/30 rounded-2xl p-6 shadow-2xl max-w-md animate-in slide-in-from-bottom-4 backdrop-blur-xl bg-slate-900/90">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-2.5 w-2.5 rounded-full bg-sky-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-400">Node Details</span>
+                </div>
+                <p className="font-black text-lg text-white tracking-tight mb-3">{hoveredNode.label}</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between py-2 border-b border-white/5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Schema</span>
+                    <span className="font-mono text-xs text-white">{hoveredNode.schema}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-white/5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Package</span>
+                    <span className="font-mono text-xs text-white">{hoveredNode.package}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-white/5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Type</span>
+                    <span className="font-mono text-xs text-white capitalize">{hoveredNode.materialization}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Resource</span>
+                    <span className="font-mono text-xs text-white capitalize">{hoveredNode.resourceType}</span>
+                  </div>
+                  {hoveredNode.tags.length > 0 && (
+                    <div className="pt-3 mt-2 border-t border-white/10">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2 block">Tags</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {hoveredNode.tags.map((tag) => (
+                          <span key={tag} className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 text-[9px] font-bold uppercase tracking-wide">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Collapsible Filters Footer */}
+          <div className={cn(
+            "flex items-center gap-4 px-4 py-3 bg-[#0f172a] border-t border-slate-800 transition-all duration-300 overflow-x-auto flex-shrink-0",
+            !showFilters && "max-h-0 py-0 border-t-0 opacity-0 pointer-events-none"
+          )}>
+            {/* Resources Dropdown */}
+            <div className="flex flex-col gap-1.5 min-w-[120px]">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">resources</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center justify-between bg-slate-800/50 px-3 py-2 rounded border border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                    <span className="text-[11px] font-medium text-slate-200">
+                      {selectedResources.size === 3 ? "All selected" : `${selectedResources.size} selected`}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-slate-500" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48 bg-slate-900 border-slate-800 text-slate-200">
+                  {(["model", "seed", "snapshot"] as const).map((type) => (
+                    <DropdownMenuCheckboxItem
+                      key={type}
+                      checked={selectedResources.has(type as ResourceType)}
+                      onCheckedChange={() => setSelectedResources(prev => {
+                        const next = new Set(prev);
+                        if (next.has(type as ResourceType)) next.delete(type as ResourceType);
+                        else next.add(type as ResourceType);
+                        return next;
+                      })}
+                    >
+                      {type}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Packages Dropdown */}
+            <div className="flex flex-col gap-1.5 min-w-[140px]">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">packages</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center justify-between bg-slate-800/50 px-3 py-2 rounded border border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                    <span className="text-[11px] font-medium text-slate-200 truncate max-w-[100px]">
+                      {selectedPackages.size === 0 ? "All packages" : `${selectedPackages.size} selected`}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-slate-500" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 text-slate-200 max-h-64 overflow-y-auto">
+                  {allPackages.map((pkg) => (
+                    <DropdownMenuCheckboxItem
+                      key={pkg}
+                      checked={selectedPackages.has(pkg)}
+                      onCheckedChange={() => setSelectedPackages(prev => {
+                        const next = new Set(prev);
+                        if (next.has(pkg)) next.delete(pkg);
+                        else next.add(pkg);
+                        return next;
+                      })}
+                    >
+                      {pkg}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Tags Dropdown */}
+            <div className="flex flex-col gap-1.5 min-w-[120px]">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">tags</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center justify-between bg-slate-800/50 px-3 py-2 rounded border border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                    <span className="text-[11px] font-medium text-slate-200">
+                      {selectedTags.size === 0 ? "All tags" : `${selectedTags.size} selected`}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-slate-500" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 text-slate-200 max-h-64 overflow-y-auto">
+                  {allTags.map((tag) => (
+                    <DropdownMenuCheckboxItem
+                      key={tag}
+                      checked={selectedTags.has(tag)}
+                      onCheckedChange={() => setSelectedTags(prev => {
+                        const next = new Set(prev);
+                        if (next.has(tag)) next.delete(tag);
+                        else next.add(tag);
+                        return next;
+                      })}
+                    >
+                      {tag}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* --select input */}
+            <div className="flex flex-col gap-1.5 flex-1 min-w-[180px]">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">--select</span>
+              <Input
+                placeholder="..."
+                value={selectInput}
+                onChange={e => setSelectInput(e.target.value)}
+                className="h-9 bg-slate-800/50 border-slate-700/50 rounded text-[11px] font-mono px-3 focus:border-sky-500/50 transition-all text-slate-200 placeholder:text-slate-600"
+              />
+            </div>
+
+            {/* --exclude input */}
+            <div className="flex flex-col gap-1.5 flex-1 min-w-[180px]">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">--exclude</span>
+              <Input
+                placeholder="..."
+                value={excludeInput}
+                onChange={e => setExcludeInput(e.target.value)}
+                className="h-9 bg-slate-800/50 border-slate-700/50 rounded text-[11px] font-mono px-3 text-slate-200 placeholder:text-slate-600 focus:border-sky-500/50"
+              />
+            </div>
+
+            <div className="flex items-end h-full pt-4">
+              <Button onClick={() => handleFit()} className="h-9 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white rounded border border-slate-700 px-4 text-[11px] font-bold uppercase tracking-wider transition-all">
+                Update Graph
+              </Button>
+            </div>
+
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-600 hover:text-white" onClick={() => onOpenChange(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
