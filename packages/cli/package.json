@@ -6,6 +6,6 @@
         "dbt-ui": "src/index.ts"
     },
     "dependencies": {
-        "@dbt-ui/core": "0.0.1"
+        "@dbt-ui/core": "workspace:0.0.1"
     }
 }

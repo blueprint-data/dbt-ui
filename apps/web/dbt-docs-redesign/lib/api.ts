@@ -14,7 +14,7 @@ import {
 } from "./mock-data";
 
 // Toggle this to switch between mock and real API
-const USE_MOCK_API = true;
+const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
 // Simulate network delay for realistic UX
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

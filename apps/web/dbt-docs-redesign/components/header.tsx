@@ -17,9 +17,11 @@ export function Header({ totalModels, children }: HeaderProps) {
       <div className="flex h-16 items-center gap-6 px-6">
         {children}
         <Link href="/" className="flex items-center gap-3 font-bold tracking-tight shrink-0 transition-all hover:opacity-70">
-          <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-lg shadow-sky-500/30 text-white">
-            <Database className="h-5 w-5" />
-          </div>
+          <img
+            src="/blue-logo.png"
+            alt="dbt Docs Logo"
+            className="h-10 w-auto"
+          />
           <div className="flex flex-col">
             <span className="hidden sm:inline-block text-base leading-tight text-slate-900">dbt Docs</span>
             <span className="hidden sm:inline-block text-[10px] uppercase tracking-widest text-sky-600 font-mono font-bold">Redesign v1</span>

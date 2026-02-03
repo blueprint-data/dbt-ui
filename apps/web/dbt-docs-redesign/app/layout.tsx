@@ -12,21 +12,8 @@ export const metadata: Metadata = {
   description: 'Modern documentation explorer for dbt projects with 500+ models',
 
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/blue-logo.png',
+    apple: '/blue-logo.png',
   },
 }
 

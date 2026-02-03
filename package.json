@@ -2,7 +2,9 @@
   "name": "dbt-ui",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*",
+    "apps/*/*"
   ],
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
