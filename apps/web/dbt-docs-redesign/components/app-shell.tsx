@@ -5,7 +5,7 @@ import React from "react"
 import { useState } from "react";
 import { Menu, X, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Header } from "@/components/header";
 import { TreeSidebar } from "@/components/tree-sidebar";
 import { LineageGraph } from "@/components/lineage-graph";
@@ -17,11 +17,25 @@ interface AppShellProps {
   selectedModelId?: string | null;
   totalModels?: number;
   allModels?: ModelSummary[];
+  graphOpen?: boolean;
+  onGraphOpenChange?: (open: boolean) => void;
 }
 
-export function AppShell({ children, selectedModelId = null, totalModels, allModels = [] }: AppShellProps) {
+
+
+export function AppShell({
+  children,
+  selectedModelId = null,
+  totalModels,
+  allModels = [],
+  graphOpen: controlledGraphOpen,
+  onGraphOpenChange
+}: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [graphOpen, setGraphOpen] = useState(false);
+  const [internalGraphOpen, setInternalGraphOpen] = useState(false);
+
+  const isGraphOpen = controlledGraphOpen ?? internalGraphOpen;
+  const setGraphOpen = onGraphOpenChange ?? setInternalGraphOpen;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 text-slate-900 flex flex-col">
@@ -40,6 +54,10 @@ export function AppShell({ children, selectedModelId = null, totalModels, allMod
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-[320px] bg-white">
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <SheetDescription className="sr-only">
+              Browse your dbt project models and databases
+            </SheetDescription>
             <TreeSidebar selectedModelId={selectedModelId} className="h-full border-r-0" />
           </SheetContent>
         </Sheet>
@@ -83,7 +101,7 @@ export function AppShell({ children, selectedModelId = null, totalModels, allMod
 
       {/* Lineage Graph Modal - Global Level */}
       <LineageGraph
-        open={graphOpen}
+        open={isGraphOpen}
         onOpenChange={setGraphOpen}
         models={allModels}
         selectedModelId={selectedModelId}

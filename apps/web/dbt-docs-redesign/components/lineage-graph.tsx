@@ -25,6 +25,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -696,6 +697,9 @@ export function LineageGraph({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={dialogClasses}>
         <DialogTitle className="sr-only">Lineage Graph</DialogTitle>
+        <DialogDescription className="sr-only">
+          Interactive visualization of model dependencies and lineage.
+        </DialogDescription>
         <div
           ref={layoutRef}
           className={cn(

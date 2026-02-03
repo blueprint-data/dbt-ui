@@ -21,7 +21,7 @@ const materializationColors: Record<Materialization, string> = {
   table: "text-emerald-500",
   view: "text-blue-500",
   incremental: "text-indigo-500",
-  ephemeral: "text-slate-500",
+  ephemeral: "text-violet-500",
 };
 
 interface VirtualTreeProps {
@@ -115,9 +115,9 @@ const TreeRow = memo(function TreeRow({
       aria-selected={node.isSelected}
       className={cn(
         "flex items-center h-8 px-3 cursor-pointer select-none rounded-lg transition-all group mx-1 relative overflow-hidden",
-        "hover:bg-slate-100/80 focus:outline-none focus:ring-1 focus:ring-sky-500/20",
+        "hover:bg-sky-50 focus:outline-none focus:ring-1 focus:ring-sky-500/20",
         node.isSelected
-          ? "bg-sky-500 text-white font-black shadow-md shadow-sky-500/20 ring-1 ring-sky-400"
+          ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black shadow-md shadow-sky-500/20 ring-1 ring-sky-400"
           : "text-slate-600 hover:text-slate-900 font-medium",
         node.isAncestorOfSelected && !node.isSelected && "bg-slate-50/50",
         isHighlighted && "ring-1 ring-sky-500 shadow-lg"
@@ -130,7 +130,7 @@ const TreeRow = memo(function TreeRow({
       {Array.from({ length: node.depth }).map((_, i) => (
         <div
           key={i}
-          className="absolute h-full w-[1px] bg-slate-200/50"
+          className="absolute h-full w-[1px] bg-slate-200/30"
           style={{ left: `${i * 14 + 18}px` }}
         />
       ))}
@@ -156,7 +156,7 @@ const TreeRow = memo(function TreeRow({
 
       {/* Label */}
       <span className={cn(
-        "truncate flex-1 text-[11px] transition-colors z-10",
+        "whitespace-nowrap flex-1 text-[11px] transition-colors z-10 mr-4",
         isModel ? "font-mono font-bold" : "font-black uppercase tracking-[0.2em] text-[10px]"
       )}>
         {node.label}
@@ -275,10 +275,10 @@ export function VirtualTree({
       onKeyDown={handleKeyDown}
       onScroll={handleScroll}
       tabIndex={-1}
-      className="outline-none overflow-auto"
+      className="outline-none overflow-auto custom-scrollbar"
       style={{ height }}
     >
-      <div style={{ height: totalHeight, position: "relative" }}>
+      <div style={{ height: totalHeight, position: "relative", minWidth: "100%" }}>
         <div
           style={{
             position: "absolute",

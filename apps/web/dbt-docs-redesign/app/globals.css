@@ -68,8 +68,8 @@
   --card-foreground: oklch(0.92 0.01 240);
   --popover: oklch(0.15 0.015 240);
   --popover-foreground: oklch(0.92 0.01 240);
-  --primary: oklch(0.65 0.2 35);
-  /* Brighter orange in dark mode */
+  --primary: oklch(0.65 0.2 235);
+  /* Sky blue in dark mode */
   --primary-foreground: oklch(0.12 0.015 240);
   --secondary: oklch(0.2 0.02 240);
   --secondary-foreground: oklch(0.92 0.01 240);
@@ -178,5 +178,31 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Premium Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: oklch(0.88 0.02 235);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.75 0.05 235);
+  }
+
+  /* Utilities */
+  .mask-linear-fade {
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
   }
 }

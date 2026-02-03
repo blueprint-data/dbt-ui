@@ -15,6 +15,8 @@ import {
   GitBranch,
   Code,
   Info,
+  Crosshair,
+  Waypoints,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +34,7 @@ const materializationColors: Record<string, string> = {
   table: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
   view: "bg-blue-500/10 text-blue-600 border-blue-500/20",
   incremental: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
-  ephemeral: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+  ephemeral: "bg-violet-500/10 text-violet-600 border-violet-500/20",
 };
 
 export default function ModelDetailPage() {
@@ -47,6 +49,8 @@ export default function ModelDetailPage() {
   const [lineageLoading, setLineageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const [isGraphOpen, setIsGraphOpen] = useState(false);
 
   // Get tab and highlight from URL
   const tabParam = searchParams.get("tab");
@@ -158,50 +162,56 @@ export default function ModelDetailPage() {
     <AppShell
       selectedModelId={decodedId}
       allModels={allGraphModels}
+      graphOpen={isGraphOpen}
+      onGraphOpenChange={setIsGraphOpen}
     >
       <div className="p-6 md:p-8 max-w-[1400px] mx-auto animate-in-up">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500 mb-8">
-          <Link href="/" className="hover:text-sky-600 transition-colors">
-            Explorer
-          </Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-slate-900 truncate max-w-[200px]">
-            {model.name}
-          </span>
-        </nav>
+        {/* Navigation / Header Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-6 relative">
+          {/* Progress / Decoration Bar to match image */}
+          <div className="absolute -bottom-[1px] left-0 w-32 h-[3px] bg-slate-200 rounded-full hidden md:block" />
+
+          <div className="flex items-center gap-4 overflow-hidden">
+            <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-slate-400 shrink-0">
+              <span className="text-slate-300 font-mono text-sm leading-none pt-1">..</span>
+
+              <div className="flex items-center gap-2 hover:text-slate-600 transition-colors cursor-default">
+                <Waypoints className="h-4 w-4 text-slate-300" />
+                <span>{model.schema}</span>
+              </div>
+            </div>
+
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-3xl border shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-all animate-in zoom-in-95 duration-300",
+              materializationColors[model.materialization] || "bg-slate-50 border-slate-200 text-slate-700"
+            )}>
+              <FileCode className="h-3.5 w-3.5" />
+              <span className="text-xs font-black tracking-widest leading-none truncate max-w-[200px]">{model.name}</span>
+            </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all rounded-full"
+            onClick={() => setIsGraphOpen(true)}
+            title="Locate in Graph"
+          >
+            <Crosshair className="h-5 w-5" />
+          </Button>
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-10">
           {/* Main Content */}
           <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="mb-10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-2 w-2 rounded-full bg-sky-500" />
-                <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-slate-500">Model Asset</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight break-all leading-none">
+            {/* Title Section (Simplified) */}
+            <div className="mb-8">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-4 tracking-tight break-all leading-none">
                 {model.name}
               </h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="text-[10px] text-slate-700 font-mono font-bold uppercase tracking-wider py-0.5 border-slate-200 bg-white shadow-sm">
-                  {model.schema}
-                </Badge>
-                <Badge variant="outline" className="text-[10px] text-slate-700 font-mono font-bold uppercase tracking-wider py-0.5 border-slate-200 bg-white shadow-sm">
-                  {model.package_name}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn("text-[10px] font-bold uppercase tracking-wider py-0.5 border shadow-sm", materializationColors[model.materialization])}
-                >
-                  {model.materialization}
-                </Badge>
-                {model.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-[10px] font-bold uppercase tracking-wider py-0.5 bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-3xl">
+                {model.description ? model.description.split('.')[0] + '.' : "A data model in the " + model.schema + " schema."}
+              </p>
             </div>
 
             {/* Tabs */}
