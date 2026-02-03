@@ -152,16 +152,26 @@ npm run dev
 
 ### Backend
 - **TypeScript** - Type-safe development
-- **better-sqlite3** - Fast, synchronous SQLite3
+- **sql.js** - SQLite compiled to WebAssembly (portable, runs in Node.js and browsers)
 - **Node.js** - Runtime environment
 
+#### Why sql.js?
+We chose sql.js over native SQLite bindings for several key advantages:
+
+- ✅ **Zero native dependencies** - Pure JavaScript + WebAssembly, no compilation needed
+- ✅ **Cross-platform** - Works on any OS (Windows, macOS, Linux) without platform-specific builds
+- ✅ **Portable** - Single .wasm file, easy to deploy and distribute
+- ✅ **Modern** - Latest SQLite features compiled directly from source
+- ✅ **Flexible** - Can run in both Node.js and browser environments
+- ✅ **Easy setup** - No build tools or native compilation required
+
 ### Frontend
-- **Next.js 16** - React framework
-- **React 19** - UI library
-- **TypeScript** - Type safety
-- **Tailwind CSS 4** - Styling
-- **Radix UI** - Accessible components
-- **Recharts** - Data visualization
+- **Next.js 16** - React framework with App Router
+- **React 19** - UI library with Server Components
+- **TypeScript** - Type safety across the stack
+- **Tailwind CSS 4** - Modern utility-first styling
+- **Radix UI** - Accessible component primitives
+- **Recharts** - Data visualization and charts
 
 ## 📝 Workflow
 
@@ -190,6 +200,77 @@ The following files/directories are excluded via `.gitignore`:
 - **`packages/core/src/index.ts`** - Core data processing logic
 - **`packages/cli/src/index.ts`** - CLI entry point
 - **`apps/web/dbt-docs-redesign/`** - Web application
+
+## 🔧 Troubleshooting
+
+### WASM file not found error
+
+If you see an error like:
+```
+ENOENT: no such file or directory, open '/ROOT/node_modules/.pnpm/sql.js@1.13.0/node_modules/sql.js/dist/sql-wasm.wasm'
+```
+
+**Solution:**
+
+1. **Stop the dev server** (Ctrl+C)
+
+2. **Delete the `.next` build cache:**
+   ```bash
+   rm -rf apps/web/dbt-docs-redesign/.next
+   ```
+
+3. **Verify WASM file exists in public:**
+   ```bash
+   ls -lh apps/web/dbt-docs-redesign/public/sql-wasm.wasm
+   ```
+   
+   If missing, run the setup script:
+   ```bash
+   npm run setup:wasm
+   ```
+
+4. **Restart the dev server:**
+   ```bash
+   cd apps/web/dbt-docs-redesign
+   npm run dev
+   ```
+
+The `sql-wasm.wasm` file should be automatically copied to the `public` directory on the next build.
+
+### Database file location
+
+The application looks for the SQLite database in the following order:
+1. `DBT_UI_DB_PATH` environment variable (absolute path)
+2. `target/dbt_ui.sqlite` (relative to working directory)
+
+**Example usage:**
+```bash
+# Set database path for current session
+export DBT_UI_DB_PATH=/path/to/your/dbt-project/target/dbt_ui.sqlite
+
+# Or inline with the command
+DBT_UI_DB_PATH=/path/to/project/target/dbt_ui.sqlite npm run dev
+```
+
+### Database not found
+
+If you get "database not found" errors:
+
+1. **Generate the database first:**
+   ```bash
+   cd your-dbt-project
+   npx @dbt-ui/cli generate
+   ```
+
+2. **Verify the file exists:**
+   ```bash
+   ls -lh target/dbt_ui.sqlite
+   ```
+
+3. **Check the path is correct:**
+   ```bash
+   echo $DBT_UI_DB_PATH
+   ```
 
 ## 🤝 Contributing
 

@@ -151,11 +151,11 @@ export default function ModelDetailPage() {
       package_name: model.package_name,
       materialization: model.materialization,
       resource_type: model.resource_type,
-      tags: model.tags,
+      tags: model.tags || [],
       description: model.description,
     },
-    ...lineage.upstream,
-    ...lineage.downstream,
+    ...(lineage.upstream || []),
+    ...(lineage.downstream || []),
   ] : [];
 
   return (
@@ -210,7 +210,7 @@ export default function ModelDetailPage() {
                 {model.name}
               </h1>
               <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-3xl">
-                {model.description ? model.description.split('.')[0] + '.' : "A data model in the " + model.schema + " schema."}
+                {model.description ? (model.description.includes('.') ? model.description.split('.')[0] + '.' : model.description) : "A data model in the " + model.schema + " schema."}
               </p>
             </div>
 
@@ -228,7 +228,7 @@ export default function ModelDetailPage() {
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 text-slate-500 py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-slate-800"
                 >
                   Columns
-                  <span className="ml-2 font-mono text-slate-400 font-normal">{model.columns.length}</span>
+                  <span className="ml-2 font-mono text-slate-400 font-normal">{(model.columns || []).length}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="upstream"
@@ -236,7 +236,7 @@ export default function ModelDetailPage() {
                 >
                   Upstream
                   {!lineageLoading && (
-                    <span className="ml-2 font-mono text-slate-400 font-normal">{lineage.upstream.length}</span>
+                    <span className="ml-2 font-mono text-slate-400 font-normal">{(lineage.upstream || []).length}</span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
@@ -245,7 +245,7 @@ export default function ModelDetailPage() {
                 >
                   Downstream
                   {!lineageLoading && (
-                    <span className="ml-2 font-mono text-slate-400 font-normal">{lineage.downstream.length}</span>
+                    <span className="ml-2 font-mono text-slate-400 font-normal">{(lineage.downstream || []).length}</span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
@@ -264,7 +264,7 @@ export default function ModelDetailPage() {
                 <TabsContent value="columns" className="mt-0">
                   <div className="rounded-2xl border border-sky-100 bg-white shadow-sm overflow-hidden">
                     <ColumnsTable
-                      columns={model.columns}
+                      columns={model.columns || []}
                       highlightColumn={highlightColumn || undefined}
                     />
                   </div>
@@ -272,7 +272,7 @@ export default function ModelDetailPage() {
 
                 <TabsContent value="upstream" className="mt-0">
                   <LineageList
-                    models={lineage.upstream}
+                    models={lineage.upstream || []}
                     direction="upstream"
                     isLoading={lineageLoading}
                   />
@@ -280,7 +280,7 @@ export default function ModelDetailPage() {
 
                 <TabsContent value="downstream" className="mt-0">
                   <LineageList
-                    models={lineage.downstream}
+                    models={lineage.downstream || []}
                     direction="downstream"
                     isLoading={lineageLoading}
                   />
@@ -401,7 +401,7 @@ function OverviewTab({ model }: { model: ModelDetail }) {
       </section>
 
       {/* Meta */}
-      {Object.keys(model.meta).length > 0 && (
+      {model.meta && Object.keys(model.meta).length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-6">
             <Code className="h-4 w-4 text-sky-500" />
@@ -410,7 +410,7 @@ function OverviewTab({ model }: { model: ModelDetail }) {
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
             <table className="w-full">
               <tbody className="divide-y divide-slate-100">
-                {Object.entries(model.meta).map(([key, value]) => (
+                {Object.entries(model.meta || {}).map(([key, value]) => (
                   <tr key={key} className="group transition-colors hover:bg-slate-50">
                     <td className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-1/3">
                       {key}
@@ -427,14 +427,14 @@ function OverviewTab({ model }: { model: ModelDetail }) {
       )}
 
       {/* Tags */}
-      {model.tags.length > 0 && (
+      {(model.tags || []).length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-6">
             <GitBranch className="h-4 w-4 text-sky-500" />
             <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600">Assigned Tags</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            {model.tags.map((tag) => (
+            {(model.tags || []).map((tag) => (
               <Badge key={tag} variant="secondary" className="px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider hover:bg-sky-50 hover:text-sky-700 transition-all cursor-default">
                 {tag}
               </Badge>

@@ -105,7 +105,7 @@ export function FiltersSidebar({
           defaultOpen={filters.tags.length > 0}
         >
           <div className="space-y-1 max-h-48 overflow-y-auto">
-            {facets.tags.map((tag) => (
+            {(facets.tags || []).map((tag) => (
               <FilterCheckbox
                 key={tag}
                 label={tag}
@@ -123,7 +123,7 @@ export function FiltersSidebar({
           defaultOpen={filters.schemas.length > 0}
         >
           <div className="space-y-1 max-h-48 overflow-y-auto">
-            {facets.schemas.map((schema) => (
+            {(facets.schemas || []).map((schema) => (
               <FilterCheckbox
                 key={schema}
                 label={schema}
@@ -141,7 +141,7 @@ export function FiltersSidebar({
           defaultOpen={filters.packages.length > 0}
         >
           <div className="space-y-1 max-h-48 overflow-y-auto">
-            {facets.packages.map((pkg) => (
+            {(facets.packages || []).map((pkg) => (
               <FilterCheckbox
                 key={pkg}
                 label={pkg}
@@ -159,7 +159,7 @@ export function FiltersSidebar({
           defaultOpen={filters.materializations.length > 0}
         >
           <div className="space-y-1">
-            {facets.materializations.map((mat) => (
+            {(facets.materializations || []).map((mat) => (
               <FilterCheckbox
                 key={mat}
                 label={mat}

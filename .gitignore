@@ -9,9 +9,6 @@ node_modules/
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
 
 # Next.js (for web apps)
 .next/
@@ -80,6 +77,13 @@ Thumbs.db
 *.sqlite
 *.db
 target/
+dbt_packages/
+dbt_modules/
+
+# Specific build artifacts
+*.wasm
+test-wasm-location.js
+verify-setup.js
 
 # Temporary files
 *.tmp

@@ -19,8 +19,8 @@ export function ColumnsTable({ columns, highlightColumn }: ColumnsTableProps) {
   const filteredColumns = columns.filter(
     (col) =>
       col.name.toLowerCase().includes(search.toLowerCase()) ||
-      col.description?.toLowerCase().includes(search.toLowerCase()) ||
-      col.type?.toLowerCase().includes(search.toLowerCase())
+      (col.description || '').toLowerCase().includes(search.toLowerCase()) ||
+      (col.type || '').toLowerCase().includes(search.toLowerCase())
   );
 
   // Auto-scroll to highlighted column

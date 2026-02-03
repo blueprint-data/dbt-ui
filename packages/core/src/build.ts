@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { openDb, initSchema, resetData, type Db } from "./sqlite.js";
-import type { Manifest, DbtNode } from "./manifest.js";
+import { createDb, saveDb, initSchema, resetData, type Db } from "./sqlite";
+import type { Manifest, DbtNode } from "./manifest";
 
 function safeJson(value: unknown): string | null {
     if (value === undefined) return null;
@@ -26,162 +26,142 @@ function pickPath(node: any): string | null {
 }
 
 function pickMaterialized(node: any): string | null {
-    // dbt suele guardar esto en config.materialized
     const m = node?.config?.materialized;
     return typeof m === "string" ? m : null;
 }
 
 function insertModels(db: Db, nodes: DbtNode[]) {
-    const stmt = db.prepare(`
-    INSERT INTO model (
-      unique_id, name, resource_type, package_name, path, database_name, schema_name,
-      alias, materialized, description, tags_json, meta_json, config_json
-    )
-    VALUES (
-      @unique_id, @name, @resource_type, @package_name, @path, @database_name, @schema_name,
-      @alias, @materialized, @description, @tags_json, @meta_json, @config_json
-    )
-  `);
+    const rows = nodes.map((n) => [
+        n.unique_id,
+        n.name,
+        n.resource_type,
+        n.package_name ?? null,
+        pickPath(n),
+        (n as any).database ?? null,
+        (n as any).schema ?? null,
+        (n as any).alias ?? null,
+        pickMaterialized(n),
+        (n as any).description ?? null,
+        safeJson(normalizeTags((n as any).tags)),
+        safeJson((n as any).meta),
+        safeJson((n as any).config),
+    ]);
 
-    const tx = db.transaction((rows: any[]) => {
-        for (const r of rows) stmt.run(r);
+    db.transaction(() => {
+        for (const r of rows) {
+            db.run(
+                `INSERT INTO model (
+                    unique_id, name, resource_type, package_name, path, database_name, schema_name,
+                    alias, materialized, description, tags_json, meta_json, config_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                r
+            );
+        }
     });
-
-    const rows = nodes.map((n) => ({
-        unique_id: n.unique_id,
-        name: n.name,
-        resource_type: n.resource_type,
-        package_name: n.package_name ?? null,
-        path: pickPath(n),
-        database_name: (n as any).database ?? null,
-        schema_name: (n as any).schema ?? null,
-        alias: (n as any).alias ?? null,
-        materialized: pickMaterialized(n),
-        description: (n as any).description ?? null,
-        tags_json: safeJson(normalizeTags((n as any).tags)),
-        meta_json: safeJson((n as any).meta),
-        config_json: safeJson((n as any).config),
-    }));
-
-    tx(rows);
 }
 
 function insertColumns(db: Db, nodes: DbtNode[]) {
-    const stmt = db.prepare(`
-    INSERT INTO column_def (model_unique_id, name, description, meta_json)
-    VALUES (@model_unique_id, @name, @description, @meta_json)
-  `);
-
-    const tx = db.transaction((rows: any[]) => {
-        for (const r of rows) stmt.run(r);
-    });
-
     const rows: any[] = [];
     for (const n of nodes) {
         const cols = n.columns ?? {};
         for (const [colName, colDef] of Object.entries(cols)) {
-            rows.push({
-                model_unique_id: n.unique_id,
-                name: colName,
-                description: colDef?.description ?? null,
-                meta_json: safeJson(colDef?.meta),
-            });
+            rows.push([
+                n.unique_id,
+                colName,
+                colDef?.description ?? null,
+                safeJson(colDef?.meta),
+            ]);
         }
     }
 
-    tx(rows);
+    db.transaction(() => {
+        for (const r of rows) {
+            db.run(
+                `INSERT INTO column_def (model_unique_id, name, description, meta_json) VALUES (?, ?, ?, ?)`,
+                r
+            );
+        }
+    });
 }
 
 function insertEdges(db: Db, nodes: DbtNode[]) {
-    const stmt = db.prepare(`
-    INSERT OR IGNORE INTO edge (src_unique_id, dst_unique_id, edge_type)
-    VALUES (@src, @dst, 'depends_on')
-  `);
-
-    const tx = db.transaction((rows: any[]) => {
-        for (const r of rows) stmt.run(r);
-    });
-
     const rows: any[] = [];
     for (const n of nodes) {
         const deps: unknown = n.depends_on?.nodes;
         const depNodes = Array.isArray(deps) ? (deps.filter((x) => typeof x === "string") as string[]) : [];
         for (const dst of depNodes) {
-            rows.push({ src: n.unique_id, dst });
+            rows.push([n.unique_id, dst, "depends_on"]);
         }
     }
 
-    tx(rows);
+    db.transaction(() => {
+        for (const r of rows) {
+            db.run(
+                `INSERT OR IGNORE INTO edge (src_unique_id, dst_unique_id, edge_type) VALUES (?, ?, ?)`,
+                r
+            );
+        }
+    });
 }
 
-function populateFts(db: Db, nodes: DbtNode[]) {
-    // Nota: FTS está "contentless", insertamos explícitamente textos.
-    const stmt = db.prepare(`
-    INSERT INTO search_fts (
-      doc_type, doc_id, model_unique_id, name, description, tags, schema_name, package_name, path
-    )
-    VALUES (
-      @doc_type, @doc_id, @model_unique_id, @name, @description, @tags, @schema_name, @package_name, @path
-    )
-  `);
-
-    const tx = db.transaction((rows: any[]) => {
-        for (const r of rows) stmt.run(r);
-    });
-
+function populateSearchDocs(db: Db, nodes: DbtNode[]) {
     const rows: any[] = [];
 
     for (const n of nodes) {
         const tagsArr = normalizeTags((n as any).tags);
         const tags = tagsArr.join(" ");
 
-        // Documento tipo "model"
-        rows.push({
-            doc_type: "model",
-            doc_id: n.unique_id,
-            model_unique_id: n.unique_id,
-            name: n.name ?? "",
-            description: (n as any).description ?? "",
+        rows.push([
+            "model",
+            n.unique_id,
+            n.unique_id,
+            n.name ?? "",
+            (n as any).description ?? "",
             tags,
-            schema_name: (n as any).schema ?? "",
-            package_name: n.package_name ?? "",
-            path: pickPath(n) ?? "",
-        });
+            (n as any).schema ?? "",
+            n.package_name ?? "",
+            pickPath(n) ?? "",
+        ]);
 
-        // Documentos tipo "column" (uno por columna)
         const cols = n.columns ?? {};
         for (const [colName, colDef] of Object.entries(cols)) {
-            rows.push({
-                doc_type: "column",
-                doc_id: `${n.unique_id}::${colName}`,
-                model_unique_id: n.unique_id,
-                name: colName,
-                description: colDef?.description ?? "",
+            rows.push([
+                "column",
+                `${n.unique_id}::${colName}`,
+                n.unique_id,
+                colName,
+                colDef?.description ?? "",
                 tags,
-                schema_name: (n as any).schema ?? "",
-                package_name: n.package_name ?? "",
-                path: pickPath(n) ?? "",
-            });
+                (n as any).schema ?? "",
+                n.package_name ?? "",
+                pickPath(n) ?? "",
+            ]);
         }
     }
 
-    tx(rows);
+    db.transaction(() => {
+        for (const r of rows) {
+            db.run(
+                `INSERT INTO search_docs (
+                    doc_type, doc_id, model_unique_id, name, description, tags, schema_name, package_name, path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                r
+            );
+        }
+    });
 }
 
-export function buildFromManifest(manifestPath: string, sqlitePath: string) {
+export async function buildFromManifest(manifestPath: string, sqlitePath: string) {
     const resolvedManifest = path.resolve(manifestPath);
     if (!fs.existsSync(resolvedManifest)) {
         throw new Error(`manifest.json no existe: ${resolvedManifest}`);
     }
 
     const manifest = JSON.parse(fs.readFileSync(resolvedManifest, "utf-8")) as Manifest;
-
     const nodes = Object.values(manifest.nodes ?? {}) as DbtNode[];
-
-
     const models = nodes.filter((n) => n && n.resource_type === "model" && typeof n.unique_id === "string");
 
-    const db = openDb(sqlitePath);
+    const db = await createDb();
     try {
         initSchema(db);
         resetData(db);
@@ -189,7 +169,9 @@ export function buildFromManifest(manifestPath: string, sqlitePath: string) {
         insertModels(db, models);
         insertColumns(db, models);
         insertEdges(db, models);
-        populateFts(db, models);
+        populateSearchDocs(db, models);
+
+        await saveDb(db, sqlitePath);
     } finally {
         db.close();
     }

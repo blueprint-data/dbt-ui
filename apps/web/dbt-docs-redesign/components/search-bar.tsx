@@ -111,7 +111,9 @@ export function SearchBar({ className }: SearchBarProps) {
   // Group column results by model
   const columnsByModel = columnResults.reduce(
     (acc, col) => {
-      const modelName = col.model_name || "Unknown";
+      // Extract model name from unique_id: "model.package.name" → "name"
+      const parts = col.model_unique_id.split('.');
+      const modelName = parts[parts.length - 1] || col.model_unique_id;
       if (!acc[modelName]) acc[modelName] = [];
       acc[modelName].push(col);
       return acc;

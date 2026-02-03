@@ -4,18 +4,14 @@ import { getDb } from "@/lib/server/db";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const db = getDb();
+  const db = await getDb();
 
   try {
-    const rows = db
-      .prepare(
-        `
-      SELECT database_name, schema_name, unique_id, name
-      FROM model
-      ORDER BY database_name, schema_name, name
-    `
-      )
-      .all() as Array<{ database_name?: string | null; schema_name?: string | null; unique_id: string; name: string }>;
+    const rows = db.all(
+      `SELECT database_name, schema_name, unique_id, name
+       FROM model
+       ORDER BY database_name, schema_name, name`
+    ) as Array<{ database_name?: string | null; schema_name?: string | null; unique_id: string; name: string }>;
 
     const tree: Record<string, Record<string, Array<{ unique_id: string; name: string }>>> = {};
 
@@ -44,7 +40,5 @@ export async function GET() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
-  } finally {
-    db.close();
   }
 }

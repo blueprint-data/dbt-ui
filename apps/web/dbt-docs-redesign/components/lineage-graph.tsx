@@ -224,7 +224,7 @@ export function LineageGraph({
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
   const [animationFrame, setAnimationFrame] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoLayout, setIsAutoLayout] = useState(true);
@@ -243,12 +243,37 @@ export function LineageGraph({
   }, [selectedModelId]);
 
   useEffect(() => {
-    if (!open || !selectedModelId) return;
+    if (!open) return;
 
     let cancelled = false;
     setGraphLoading(true);
     setGraphError(null);
 
+    // If no model is selected, fetch complete project architecture
+    if (!selectedModelId) {
+      fetch('/api/lineage/all')
+        .then(res => res.json())
+        .then((data) => {
+          if (cancelled) return;
+          
+          // Set all models and edges for global view
+          setGraphModels(data.models || []);
+          setGraphEdges(data.edges || []);
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            console.error("Failed to load full project graph:", err);
+            setGraphError("Failed to load project architecture");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setGraphLoading(false);
+        });
+      
+      return () => { cancelled = true; };
+    }
+
+    // If a specific model is selected, fetch its lineage
     fetchLineage(selectedModelId, graphDepth)
       .then((data) => {
         if (cancelled) return;
@@ -288,13 +313,13 @@ export function LineageGraph({
   }, [open, selectedModelId, graphDepth]);
 
   const allPackages = useMemo(() => [...new Set(graphModels.map((m) => m.package_name))], [graphModels]);
-  const allTags = useMemo(() => [...new Set(graphModels.flatMap((m) => m.tags))], [graphModels]);
+  const allTags = useMemo(() => [...new Set(graphModels.flatMap((m) => m.tags || []))], [graphModels]);
 
   const filteredModels = useMemo(() => {
     let result = graphModels;
     result = result.filter((m) => selectedResources.has(m.resource_type));
     if (selectedPackages.size > 0) result = result.filter((m) => selectedPackages.has(m.package_name));
-    if (selectedTags.size > 0) result = result.filter((m) => m.tags.some((t) => selectedTags.has(t)));
+    if (selectedTags.size > 0) result = result.filter((m) => (m.tags || []).some((t) => selectedTags.has(t)));
     if (selectInput.trim()) result = result.filter((m) => m.name.toLowerCase().includes(selectInput.toLowerCase()));
     if (excludeInput.trim()) result = result.filter((m) => !m.name.toLowerCase().includes(excludeInput.toLowerCase()));
     return result.slice(0, 150);
@@ -745,42 +770,121 @@ export function LineageGraph({
           )}
         >
           {/* Compact Header */}
-          <div className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-slate-900/95 border-b dark-section-border z-10 backdrop-blur-sm">
-            <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center justify-between px-3 md:px-4 py-2 bg-slate-900/95 border-b dark-section-border z-10 backdrop-blur-sm">
+            <div className="flex items-center gap-1">
               <div className="flex flex-col">
-                <h2 className="text-xs md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.3em] flex items-center gap-1.5 md:gap-2 text-white">
-                  <GitBranch className="h-3.5 w-3.5 md:h-4 md:w-4 text-sky-400" />
-                  <span className="hidden sm:inline">Gráfico de Linaje</span>
-                  <span className="sm:hidden">Lineage</span>
+                <h2 className="text-[11px] font-black uppercase tracking-[0.12em] flex items-center gap-1 text-white">
+                  <GitBranch className="h-3.5 w-3.5 text-sky-400" />
+                  <span className="hidden sm:inline">Lineage</span>
                 </h2>
-                <span className="hidden sm:block text-[10px] font-mono text-slate-400 uppercase tracking-wide mt-0.5">
-                  {nodes.length} nodos activos
+                <span className="hidden sm:block text-[9px] font-mono text-slate-500 uppercase tracking-wide leading-tight">
+                  {nodes.length} nodes
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-                <Input
-                  placeholder="Buscar nodo..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-                  className="pl-9 h-10 w-64 bg-slate-800/60 border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500"
-                />
-                {searchFocused && searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 border border-slate-700 rounded-xl overflow-hidden z-50 backdrop-blur-xl">
-                    {searchResults.map(n => (
-                      <button key={n.id} className="w-full text-left p-3 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-sky-500/20" onClick={() => { setActiveNodeId(n.id); centerNode(n.id); }}>
-                        {n.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            <div className="flex items-center gap-1">
+              {/* Zoom Controls - Ultra Compact */}
+              <div className="hidden md:flex items-center gap-0.5 bg-slate-800/60 rounded px-1 py-0.5 border border-slate-700">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  onClick={() => setTransform(t => ({ ...t, scale: Math.max(0.1, t.scale - 0.2) }))}
+                  title="Zoom Out (-)"
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-[10px] font-mono text-slate-300 min-w-[38px] text-center px-1">
+                  {Math.round(transform.scale * 100)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  onClick={() => setTransform(t => ({ ...t, scale: Math.min(3, t.scale + 0.2) }))}
+                  title="Zoom In (+)"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
-                <X className="h-4 w-4 md:h-5 md:w-5" />
+
+              {/* Divider */}
+              <div className="hidden md:block h-4 w-px bg-slate-700/50" />
+
+              {/* Action Buttons - Compact */}
+              <div className="hidden md:flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-6 w-6 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400",
+                    isFullscreen && "bg-sky-500/20 text-sky-400"
+                  )}
+                  onClick={toggleFullscreen}
+                  title="Fullscreen (F)"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-6 w-6 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400",
+                    !isAutoLayout && "bg-sky-500/20 text-sky-400"
+                  )}
+                  onClick={() => setIsAutoLayout(!isAutoLayout)}
+                  title="Auto Layout (A)"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", !isAutoLayout && "animate-[spin_3s_linear_infinite]")} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  onClick={() => activeNodeId && centerNode(activeNodeId)}
+                  title="Re-center (C)"
+                >
+                  <Crosshair className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden md:block h-4 w-px bg-slate-700/50" />
+
+              {/* Depth Controls - Ultra Compact */}
+              <div className="hidden md:flex items-center gap-0.5 bg-slate-800/60 rounded px-1 py-0.5 border border-slate-700">
+                <span className="text-[9px] text-slate-400">D</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  onClick={() => adjustDepth(-1)}
+                  disabled={graphDepth <= 1}
+                  title="Decrease Depth"
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-[10px] font-mono font-bold text-slate-200 min-w-[14px] text-center">
+                  {graphDepth}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  onClick={() => adjustDepth(1)}
+                  disabled={graphDepth >= 4}
+                  title="Increase Depth"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden md:block h-4 w-px bg-slate-700/50" />
+
+              {/* Close Button - Compact */}
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -789,116 +893,74 @@ export function LineageGraph({
             ref={containerRef}
             className="flex-1 relative overflow-hidden group/canvas bg-[#0b1221]"
           >
-            {/* Floating Controls - Top Right (responsive) */}
-            <div className="absolute top-3 right-3 md:top-4 md:right-4 z-30 flex flex-col gap-2">
-              {/* Zoom Controls */}
-              <div className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-1 flex flex-col gap-1 backdrop-blur-xl shadow-xl">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400 transition-colors"
-                  onClick={() => setTransform(t => ({ ...t, scale: Math.min(3, t.scale + 0.2) }))}
-                  title="Zoom In (+)">
-                  <ZoomIn className="h-4 w-4 md:h-5 md:w-5" />
-                </Button>
-                <div className="px-2 py-1 text-[10px] md:text-xs font-mono text-center font-bold text-slate-500">
-                  {Math.round(transform.scale * 100)}%
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 md:h-10 md:w-10 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400 transition-colors"
-                  onClick={() => setTransform(t => ({ ...t, scale: Math.max(0.1, t.scale - 0.2) }))}
-                  title="Zoom Out (-)">
-                  <ZoomOut className="h-4 w-4 md:h-5 md:w-5" />
-                </Button>
-              </div>
 
-              {/* Quick Actions */}
-              <div className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-1 flex flex-col gap-1 backdrop-blur-xl shadow-xl">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-9 w-9 md:h-10 md:w-10 text-slate-400 transition-all hover:bg-sky-500/20 hover:text-sky-400",
-                    isFullscreen && "bg-sky-500/20 text-sky-400"
-                  )}
-                  onClick={toggleFullscreen}
-                  title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Mode"}
-                >
-                  <Maximize2 className="h-4 w-4 md:h-5 md:w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-9 w-9 md:h-10 md:w-10 text-slate-400 transition-all hover:bg-sky-500/20 hover:text-sky-400",
-                    !isAutoLayout && "bg-sky-500/20 text-sky-400"
-                  )}
-                  onClick={() => setIsAutoLayout(!isAutoLayout)}
-                  title={isAutoLayout ? "Manual Mode" : "Auto Layout"}
-                >
-                  <RefreshCw className={cn("h-4 w-4 md:h-5 md:w-5", !isAutoLayout && "animate-[spin_3s_linear_infinite]")} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 md:h-10 md:w-10 text-slate-400 transition-all hover:bg-sky-500/20 hover:text-sky-400"
-                  onClick={() => activeNodeId && centerNode(activeNodeId)}
-                  title="Re-center on model"
-                >
-                  <Crosshair className="h-4 w-4 md:h-5 md:w-5" />
-                </Button>
-              </div>
-
-              {/* Depth Controls */}
-              <div className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-2 flex flex-col gap-2 backdrop-blur-xl shadow-xl">
-                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest text-center">Depth</div>
-                <div className="flex items-center justify-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
-                    onClick={() => adjustDepth(-1)}
-                    disabled={graphDepth <= 1}
-                    title="Depth -"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <div className="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 min-w-[48px] text-center">
-                    {graphDepth}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
-                    onClick={() => adjustDepth(1)}
-                    disabled={graphDepth >= 4}
-                    title="Depth +"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating Filters Toggle - Bottom Left (responsive) */}
+            {/* Floating Filters Toggle - Bottom Left */}
             <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 z-30">
               <Button
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "bg-slate-900/90 border-slate-700/50 text-slate-300 hover:bg-sky-500/20 hover:text-sky-400 hover:border-sky-500/30 transition-all h-9 md:h-10 px-3 md:px-4 gap-2 backdrop-blur-xl shadow-xl",
+                  "bg-slate-900/90 border-slate-700/50 text-slate-300 hover:bg-sky-500/20 hover:text-sky-400 hover:border-sky-500/30 transition-all h-8 px-3 gap-1.5 backdrop-blur-xl shadow-xl",
                   showFilters && "bg-sky-500/10 border-sky-500/30 text-sky-400"
                 )}
                 onClick={() => setShowFilters(!showFilters)}
               >
-                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">
+                <span className="text-[10px] font-bold uppercase tracking-wider">
                   {showFilters ? "Hide" : "Filters"}
                 </span>
-                <ChevronDown className={cn("h-3 w-3 md:h-4 md:w-4 transition-transform", showFilters && "rotate-180")} />
+                <ChevronDown className={cn("h-3 w-3 transition-transform", showFilters && "rotate-180")} />
               </Button>
             </div>
+
+            {/* Floating Search Trigger - Top Right */}
+            <button
+              type="button"
+              onClick={() => setSearchPanelOpen((open) => !open)}
+              className="absolute top-3 right-3 md:top-4 md:right-4 z-30 h-9 w-9 bg-slate-900/90 border border-slate-700 rounded-lg flex items-center justify-center hover:bg-sky-500/20 hover:border-sky-500/40 transition-all"
+              title="Search nodes (/)">
+              <Search className="h-4 w-4 text-slate-300" />
+            </button>
+
+            {/* Floating Search Panel - Bottom Right */}
+            {searchPanelOpen && (
+              <div className="absolute bottom-4 right-4 z-30 w-64 max-h-[400px] bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl backdrop-blur-xl flex flex-col">
+                <div className="p-3 border-b border-slate-800">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <Input
+                      placeholder="Buscar nodo..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="pl-9 h-8 bg-slate-800/60 border-slate-700 rounded-md text-xs font-mono text-white placeholder:text-slate-500"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  {searchResults.length > 0 ? (
+                    searchResults.map(n => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveNodeId(n.id);
+                          centerNode(n.id);
+                          setSearchPanelOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded text-xs text-white hover:bg-sky-500/20 transition-colors"
+                      >
+                        {n.label}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-500">No results</div>
+                  )}
+                </div>
+                <div className="p-2 border-t border-slate-800 text-[9px] text-slate-500 text-center uppercase tracking-wider">
+                  {searchResults.length} nodes
+                </div>
+              </div>
+            )}
 
             <canvas
               ref={canvasRef}
@@ -921,7 +983,7 @@ export function LineageGraph({
               </div>
             )}
             {hoveredNode && (
-              <div className="absolute bottom-6 left-6 glass border border-sky-500/30 rounded-2xl p-6 shadow-2xl max-w-md animate-in slide-in-from-bottom-4 backdrop-blur-xl bg-slate-900/90">
+              <div className="absolute bottom-6 left-6 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-6 shadow-2xl max-w-md animate-in slide-in-from-bottom-4 backdrop-blur-xl text-white">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="h-2.5 w-2.5 rounded-full bg-sky-500 animate-pulse" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-400">Node Details</span>

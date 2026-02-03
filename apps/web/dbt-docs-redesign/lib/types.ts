@@ -5,7 +5,7 @@ export type Materialization = "table" | "view" | "incremental" | "ephemeral";
 
 export interface Column {
   name: string;
-  type?: string;
+  type?: string; // Note: Currently not populated from DB - reserved for future dbt schema type info
   description?: string;
 }
 

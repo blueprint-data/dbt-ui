@@ -28,44 +28,40 @@ function parseTags(json?: string | null): string[] {
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  // Next.js 15+: params is now a Promise and must be awaited
+  const { id } = await params;
   const { searchParams } = new URL(req.url);
   const depth = Math.max(1, Math.min(4, Number(searchParams.get("depth") ?? 1) || 1));
 
-  const db = getDb();
+  const db = await getDb();
 
   try {
     const visited = new Set<string>();
     const edges: GraphEdge[] = [];
     const edgeSet = new Set<string>();
 
-    let frontier = [params.id];
-    visited.add(params.id);
+    let frontier = [id];
+    visited.add(id);
 
     for (let d = 0; d < depth; d++) {
       const next: string[] = [];
 
       for (const id of frontier) {
-        const ups = db
-          .prepare(
-            `
-            SELECT e.src_unique_id as source, e.dst_unique_id as target
-            FROM edge e
-            WHERE e.src_unique_id = ?
-          `
-          )
-          .all(id) as GraphEdge[];
+        const ups = db.all(
+          `SELECT e.src_unique_id as source, e.dst_unique_id as target
+           FROM edge e
+           WHERE e.src_unique_id = ?`,
+          [id]
+        ) as GraphEdge[];
 
-        const downs = db
-          .prepare(
-            `
-            SELECT e.src_unique_id as source, e.dst_unique_id as target
-            FROM edge e
-            WHERE e.dst_unique_id = ?
-          `
-          )
-          .all(id) as GraphEdge[];
+        const downs = db.all(
+          `SELECT e.src_unique_id as source, e.dst_unique_id as target
+           FROM edge e
+           WHERE e.dst_unique_id = ?`,
+          [id]
+        ) as GraphEdge[];
 
         for (const e of [...ups, ...downs]) {
           const key = `${e.source}->${e.target}`;
@@ -93,15 +89,12 @@ export async function GET(
 
     if (ids.length > 0) {
       const placeholders = ids.map(() => "?").join(",");
-      const rows = db
-        .prepare(
-          `
-            SELECT unique_id, name, schema_name, package_name, materialized, resource_type, tags_json
-            FROM model
-            WHERE unique_id IN (${placeholders})
-          `
-        )
-        .all(...ids) as RawModel[];
+      const rows = db.all(
+        `SELECT unique_id, name, schema_name, package_name, materialized, resource_type, tags_json
+         FROM model
+         WHERE unique_id IN (${placeholders})`,
+        ids
+      ) as RawModel[];
 
       for (const r of rows) {
         nodes.push({
@@ -117,27 +110,21 @@ export async function GET(
     }
 
     // Immediate upstream/downstream for detail lists
-    const upstreamRows = db
-      .prepare(
-        `
-        SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
-        FROM edge e
-        JOIN model m ON e.dst_unique_id = m.unique_id
-        WHERE e.src_unique_id = ?
-      `
-      )
-      .all(params.id) as RawModel[];
+    const upstreamRows = db.all(
+      `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
+       FROM edge e
+       JOIN model m ON e.dst_unique_id = m.unique_id
+       WHERE e.src_unique_id = ?`,
+      [id]
+    ) as RawModel[];
 
-    const downstreamRows = db
-      .prepare(
-        `
-        SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
-        FROM edge e
-        JOIN model m ON e.src_unique_id = m.unique_id
-        WHERE e.dst_unique_id = ?
-      `
-      )
-      .all(params.id) as RawModel[];
+    const downstreamRows = db.all(
+      `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
+       FROM edge e
+       JOIN model m ON e.src_unique_id = m.unique_id
+       WHERE e.dst_unique_id = ?`,
+      [id]
+    ) as RawModel[];
 
     const toSummary = (r: RawModel) => ({
       unique_id: r.unique_id,
@@ -159,7 +146,5 @@ export async function GET(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
-  } finally {
-    db.close();
   }
 }

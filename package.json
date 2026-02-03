@@ -6,6 +6,12 @@
     "apps/*",
     "apps/*/*"
   ],
+  "scripts": {
+    "setup:wasm": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'node_modules/.pnpm');const dirs=fs.readdirSync(src).filter(d=>d.startsWith('sql.js@'));if(dirs[0]){const wasm=path.join(src,dirs[0],'node_modules/sql.js/dist/sql-wasm.wasm');const dest=path.join(__dirname,'apps/web/dbt-docs-redesign/public/sql-wasm.wasm');fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(wasm,dest);console.log('✅ WASM file copied to apps/web/dbt-docs-redesign/public/');}\"",
+    "verify": "node verify-setup.js",
+    "dev": "cd apps/web/dbt-docs-redesign && npm run dev",
+    "build": "cd apps/web/dbt-docs-redesign && npm run build"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.2.0",

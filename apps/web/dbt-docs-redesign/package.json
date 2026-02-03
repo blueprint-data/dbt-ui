@@ -6,7 +6,9 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "setup:wasm": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'node_modules/.pnpm');const dirs=fs.readdirSync(src).filter(d=>d.startsWith('sql.js@'));if(dirs[0]){const wasm=path.join(src,dirs[0],'node_modules/sql.js/dist/sql-wasm.wasm');const dest=path.join(__dirname,'public/sql-wasm.wasm');fs.copyFileSync(wasm,dest);console.log('✅ WASM file copied to public/');}\"",
+    "clean": "rm -rf .next node_modules/.cache"
   },
   "dependencies": {
     "@dbt-ui/core": "workspace:*",

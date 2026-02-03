@@ -30,23 +30,23 @@ async function main() {
 
         console.log(`Building SQLite at ${sqlitePath} from ${manifestPath}...`);
         try {
-            buildFromManifest(manifestPath, sqlitePath);
+            await buildFromManifest(manifestPath, sqlitePath);
 
-            const db = openDb(sqlitePath);
-            const counts = db.prepare(`
+            const db = await openDb(sqlitePath);
+            const counts = db.get(`
         SELECT 
           (SELECT count(*) FROM model) as models,
           (SELECT count(*) FROM column_def) as columns,
           (SELECT count(*) FROM edge) as edges,
-          (SELECT count(*) FROM search_fts) as fts
-      `).get() as { models: number; columns: number; edges: number; fts: number };
+          (SELECT count(*) FROM search_docs) as search_docs
+      `) as { models: number; columns: number; edges: number; search_docs: number };
             db.close();
 
             console.log("SUCCESS: Database generated.");
             console.log(`- Models: ${counts.models}`);
             console.log(`- Columns: ${counts.columns}`);
             console.log(`- Edges: ${counts.edges}`);
-            console.log(`- FTS entries: ${counts.fts}`);
+            console.log(`- Search entries: ${counts.search_docs}`);
         } catch (error) {
             console.error("Error during build:", error);
             process.exit(1);
@@ -91,7 +91,10 @@ function serve(cmdArgs: string[]) {
         PORT: port,
     };
 
-    spawnSync("pnpm", ["-C", "apps/web/dbt-docs-redesign", "dev"], {
+    // Resolve to repo root (../../ from packages/cli)
+    const webAppDir = path.resolve(__dirname, "../../apps/web/dbt-docs-redesign");
+
+    spawnSync("pnpm", ["-C", webAppDir, "dev"], {
         stdio: "inherit",
         env: childEnv,
     });
