@@ -17,6 +17,9 @@ import {
   ChevronDown,
   RefreshCw,
   GitBranch,
+  Crosshair,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +37,14 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { ModelSummary, Materialization, ResourceType } from "@/lib/types";
+import { fetchLineage } from "@/lib/api";
+import type {
+  ModelSummary,
+  Materialization,
+  ResourceType,
+  LineageGraphEdge,
+  LineageGraphNode,
+} from "@/lib/types";
 
 // Constants - Optimized for readability with larger nodes and better spacing
 const NODE_WIDTH = 220;
@@ -47,7 +57,7 @@ const GRID_SIZE = 0;
 // Paleta "Professional Light Blueprint"
 const BG_COLOR = "#f8fafc"; // Slate 50 (Fondo claro limpio)
 const NODE_COLOR = "#ffffff"; // White (Nodos limpios)
-const NODE_SELECTED_COLOR = "#0ea5e9"; // Sky 500
+const NODE_SELECTED_COLOR = "#22c55e"; // Emerald 500 for selected
 const NODE_HOVER_COLOR = "#e0f2fe"; // Sky 100
 const TEXT_COLOR = "#0f172a"; // Slate 900 (Texto legible)
 const EDGE_COLOR = "#cbd5e1"; // Slate 300 (Conexiones sutiles)
@@ -190,51 +200,6 @@ function buildDAGLayout(
   return Array.from(nodeMap.values());
 }
 
-function generateEdges(models: ModelSummary[]): GraphEdge[] {
-  const edges: GraphEdge[] = [];
-  const edgeSet = new Set<string>();
-  const prefixOrder = ["src", "stg", "int", "fct", "dim", "rpt", "agg", "mart"];
-
-  models.forEach((model) => {
-    const nameParts = model.name.split("_");
-    const prefix = nameParts[0];
-    const domain = nameParts.slice(1, 3).join("_");
-    const prefixIdx = prefixOrder.indexOf(prefix);
-
-    models.forEach((other) => {
-      if (model.unique_id === other.unique_id) return;
-      const otherParts = other.name.split("_");
-      const otherPrefix = otherParts[0];
-      const otherDomain = otherParts.slice(1, 3).join("_");
-      const otherPrefixIdx = prefixOrder.indexOf(otherPrefix);
-
-      if (domain === otherDomain && prefixIdx >= 0 && otherPrefixIdx === prefixIdx + 1) {
-        const edgeKey = `${model.unique_id}->${other.unique_id}`;
-        if (!edgeSet.has(edgeKey)) {
-          edgeSet.add(edgeKey);
-          edges.push({ id: edgeKey, source: model.unique_id, target: other.unique_id });
-        }
-      }
-    });
-  });
-
-  // Cross-domain connections for realism
-  const factModels = models.filter((m) => m.name.startsWith("fct_"));
-  const dimModels = models.filter((m) => m.name.startsWith("dim_"));
-  factModels.slice(0, 5).forEach((fact, i) => {
-    const dim = dimModels[i % dimModels.length];
-    if (dim) {
-      const edgeKey = `${dim.unique_id}->${fact.unique_id}`;
-      if (!edgeSet.has(edgeKey)) {
-        edgeSet.add(edgeKey);
-        edges.push({ id: edgeKey, source: dim.unique_id, target: fact.unique_id });
-      }
-    }
-  });
-
-  return edges;
-}
-
 export function LineageGraph({
   open,
   onOpenChange,
@@ -245,6 +210,13 @@ export function LineageGraph({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const layoutRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [graphModels, setGraphModels] = useState<ModelSummary[]>(models);
+  const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
+  const [graphDepth, setGraphDepth] = useState(2);
+  const [graphLoading, setGraphLoading] = useState(false);
+  const [graphError, setGraphError] = useState<string | null>(null);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(selectedModelId ?? null);
 
   const [dimensions, setDimensions] = useState({ width: 1200, height: 700 });
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.8 });
@@ -266,20 +238,72 @@ export function LineageGraph({
   const [selectInput, setSelectInput] = useState("");
   const [excludeInput, setExcludeInput] = useState("");
 
-  const allPackages = useMemo(() => [...new Set(models.map((m) => m.package_name))], [models]);
-  const allTags = useMemo(() => [...new Set(models.flatMap((m) => m.tags))], [models]);
+  useEffect(() => {
+    setActiveNodeId(selectedModelId ?? null);
+  }, [selectedModelId]);
+
+  useEffect(() => {
+    if (!open || !selectedModelId) return;
+
+    let cancelled = false;
+    setGraphLoading(true);
+    setGraphError(null);
+
+    fetchLineage(selectedModelId, graphDepth)
+      .then((data) => {
+        if (cancelled) return;
+
+        const nodes = (data.nodes ?? []).map((n: LineageGraphNode): ModelSummary => ({
+          unique_id: n.id,
+          name: n.label,
+          schema: n.schema,
+          package_name: n.package_name,
+          materialization: n.materialization,
+          resource_type: n.resource_type,
+          tags: n.tags,
+          description: "",
+        }));
+
+        const edges = (data.edges ?? []).map((e: LineageGraphEdge) => ({
+          id: `${e.source}->${e.target}`,
+          source: e.source,
+          target: e.target,
+        }));
+
+        setGraphModels(nodes);
+        setGraphEdges(edges);
+        setActiveNodeId(selectedModelId);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setGraphError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setGraphLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, selectedModelId, graphDepth]);
+
+  const allPackages = useMemo(() => [...new Set(graphModels.map((m) => m.package_name))], [graphModels]);
+  const allTags = useMemo(() => [...new Set(graphModels.flatMap((m) => m.tags))], [graphModels]);
 
   const filteredModels = useMemo(() => {
-    let result = models;
+    let result = graphModels;
     result = result.filter((m) => selectedResources.has(m.resource_type));
     if (selectedPackages.size > 0) result = result.filter((m) => selectedPackages.has(m.package_name));
     if (selectedTags.size > 0) result = result.filter((m) => m.tags.some((t) => selectedTags.has(t)));
     if (selectInput.trim()) result = result.filter((m) => m.name.toLowerCase().includes(selectInput.toLowerCase()));
     if (excludeInput.trim()) result = result.filter((m) => !m.name.toLowerCase().includes(excludeInput.toLowerCase()));
     return result.slice(0, 150);
-  }, [models, selectedResources, selectedPackages, selectedTags, selectInput, excludeInput]);
+  }, [graphModels, selectedResources, selectedPackages, selectedTags, selectInput, excludeInput]);
 
-  const edges = useMemo(() => generateEdges(filteredModels), [filteredModels]);
+  const edges = useMemo(() => {
+    const allowed = new Set(filteredModels.map((m) => m.unique_id));
+    return graphEdges.filter((e) => allowed.has(e.source) && allowed.has(e.target));
+  }, [graphEdges, filteredModels]);
 
   // Initialize and update nodes layout
   useEffect(() => {
@@ -295,7 +319,7 @@ export function LineageGraph({
   }, [searchQuery, nodes]);
 
   const highlightedLineage = useMemo(() => {
-    const activeId = selectedModelId || hoveredNode?.id;
+    const activeId = activeNodeId || hoveredNode?.id;
     if (!activeId) return new Set<string>();
 
     const connectedNodes = new Set<string>([activeId]);
@@ -324,7 +348,7 @@ export function LineageGraph({
       });
     }
     return connectedNodes;
-  }, [selectedModelId, hoveredNode, edges]);
+  }, [activeNodeId, hoveredNode, edges]);
 
   // Center logic
   const centerNode = useCallback((nodeId: string) => {
@@ -337,6 +361,19 @@ export function LineageGraph({
       });
     }
   }, [nodes, dimensions, transform.scale]);
+
+  const adjustDepth = useCallback((delta: number) => {
+    setGraphDepth((d) => Math.max(1, Math.min(4, d + delta)));
+  }, []);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    const match = nodes.find((n) => n.label.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (match) {
+      setActiveNodeId(match.id);
+      centerNode(match.id);
+    }
+  }, [searchQuery, nodes, centerNode]);
 
   const handleFit = useCallback(() => {
     if (nodes.length === 0) return;
@@ -411,11 +448,11 @@ export function LineageGraph({
   useEffect(() => {
     if (!open) return;
     const timer = setTimeout(() => {
-      if (selectedModelId) centerNode(selectedModelId);
+      if (activeNodeId) centerNode(activeNodeId);
       else handleFit();
     }, 150);
     return () => clearTimeout(timer);
-  }, [open, selectedModelId, centerNode, handleFit]);
+  }, [open, activeNodeId, centerNode, handleFit, nodes]);
 
   // Ensure filters are visible when opening the graph
   useEffect(() => {
@@ -485,8 +522,8 @@ export function LineageGraph({
     ctx.fill();
 
     // Border para mejor definición
-    ctx.strokeStyle = isSel ? "#06b6d4" : "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = isSel ? 2 : 1;
+    ctx.strokeStyle = isSel ? "#16a34a" : "rgba(255, 255, 255, 0.1)";
+    ctx.lineWidth = isSel ? 2.5 : 1;
     ctx.stroke();
 
     // Texto legible optimizado para tamaño mejorado
@@ -540,7 +577,7 @@ export function LineageGraph({
     });
 
     nodes.forEach(n => {
-      const isSel = n.id === selectedModelId;
+      const isSel = n.id === activeNodeId;
       const isHov = hoveredNode?.id === n.id;
       const isHigh = highlightedLineage.has(n.id);
       const isMatch = searchMatchIds.has(n.id);
@@ -590,14 +627,14 @@ export function LineageGraph({
       const miniScale = Math.min(miniMapW / worldW, miniMapH / worldH) * 0.9;
 
       // Draw Nodes in Minimap
-      nodes.forEach(n => {
-        const mx = miniMapX + (n.x - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
-        const my = miniMapY + (n.y - worldMinY) * miniScale + (miniMapH - worldH * miniScale) / 2;
-        ctx.fillStyle = n.id === selectedModelId ? NODE_SELECTED_COLOR : "rgba(91, 165, 189, 0.5)";
-        ctx.beginPath();
-        ctx.arc(mx, my, 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
+        nodes.forEach(n => {
+          const mx = miniMapX + (n.x - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
+          const my = miniMapY + (n.y - worldMinY) * miniScale + (miniMapH - worldH * miniScale) / 2;
+          ctx.fillStyle = n.id === activeNodeId ? NODE_SELECTED_COLOR : "rgba(91, 165, 189, 0.5)";
+          ctx.beginPath();
+          ctx.arc(mx, my, 2, 0, Math.PI * 2);
+          ctx.fill();
+        });
 
       // Draw Viewport Rect
       const vpX = miniMapX + ((-transform.x / transform.scale) - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
@@ -735,7 +772,7 @@ export function LineageGraph({
                 {searchFocused && searchResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/95 border border-slate-700 rounded-xl overflow-hidden z-50 backdrop-blur-xl">
                     {searchResults.map(n => (
-                      <button key={n.id} className="w-full text-left p-3 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-sky-500/20" onClick={() => centerNode(n.id)}>
+                      <button key={n.id} className="w-full text-left p-3 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-sky-500/20" onClick={() => { setActiveNodeId(n.id); centerNode(n.id); }}>
                         {n.label}
                       </button>
                     ))}
@@ -803,6 +840,45 @@ export function LineageGraph({
                 >
                   <RefreshCw className={cn("h-4 w-4 md:h-5 md:w-5", !isAutoLayout && "animate-[spin_3s_linear_infinite]")} />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 md:h-10 md:w-10 text-slate-400 transition-all hover:bg-sky-500/20 hover:text-sky-400"
+                  onClick={() => activeNodeId && centerNode(activeNodeId)}
+                  title="Re-center on model"
+                >
+                  <Crosshair className="h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+              </div>
+
+              {/* Depth Controls */}
+              <div className="bg-slate-900/90 border border-slate-700/50 rounded-xl p-2 flex flex-col gap-2 backdrop-blur-xl shadow-xl">
+                <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest text-center">Depth</div>
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                    onClick={() => adjustDepth(-1)}
+                    disabled={graphDepth <= 1}
+                    title="Depth -"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <div className="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 min-w-[48px] text-center">
+                    {graphDepth}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                    onClick={() => adjustDepth(1)}
+                    disabled={graphDepth >= 4}
+                    title="Depth +"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -834,6 +910,16 @@ export function LineageGraph({
               onWheel={onWheel}
               onDoubleClick={onDblClick}
             />
+            {graphLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 text-slate-100 text-sm font-mono z-40">
+                Loading lineage graph...
+              </div>
+            )}
+            {graphError && (
+              <div className="absolute inset-x-4 top-4 z-40 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700 text-sm shadow">
+                {graphError}
+              </div>
+            )}
             {hoveredNode && (
               <div className="absolute bottom-6 left-6 glass border border-sky-500/30 rounded-2xl p-6 shadow-2xl max-w-md animate-in slide-in-from-bottom-4 backdrop-blur-xl bg-slate-900/90">
                 <div className="flex items-center gap-2 mb-4">

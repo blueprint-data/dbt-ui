@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { VirtualTree } from "@/components/virtual-tree";
 import { useTreeNavigation } from "@/hooks/use-tree-navigation";
 import { cn } from "@/lib/utils";
+import { DatabaseTree } from "@/components/database-tree";
 import type { TreeMode, ModelSummary } from "@/lib/types";
 
 interface TreeSidebarProps {
@@ -179,9 +180,11 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
         </div>
       )}
 
-      {/* Tree container */}
-      <div className="flex-1 relative overflow-hidden group" ref={containerRef}>
-        {isLoading ? (
+        {/* Tree container */}
+        <div className="flex-1 relative overflow-hidden group" ref={containerRef}>
+        {mode === "database" ? (
+          <DatabaseTree selectedModelId={selectedModelId} className="h-full" />
+        ) : isLoading ? (
           <div className="p-4 space-y-3">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -220,7 +223,7 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
             )}
           </>
         )}
-      </div>
+        </div>
 
       {/* Footer - Asset Count */}
       <div className="p-4 border-t border-slate-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0">
