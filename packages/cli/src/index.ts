@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { buildFromManifest, openDb } from "@dbt-ui/core";
@@ -51,8 +51,11 @@ async function main() {
             console.error("Error during build:", error);
             process.exit(1);
         }
+    } else if (command === "serve") {
+        serve(process.argv.slice(3));
     } else {
         console.log("Usage: dbt-ui generate [--manifest <path>] [--out <path>] [--skip-dbt]");
+        console.log("       dbt-ui serve [--db <path>] [--port <port>]");
     }
 }
 
@@ -62,6 +65,36 @@ function getArgValue(flag: string): string | null {
         return args[index + 1];
     }
     return null;
+}
+
+function serve(cmdArgs: string[]) {
+    const portArgIndex = cmdArgs.indexOf("--port");
+    const port = portArgIndex !== -1 ? cmdArgs[portArgIndex + 1] : "3000";
+
+    const dbArgIndex = cmdArgs.indexOf("--db");
+    const dbPath = dbArgIndex !== -1 ? cmdArgs[dbArgIndex + 1] : "target/dbt_ui.sqlite";
+
+    const absDb = path.resolve(dbPath);
+
+    if (!fs.existsSync(absDb)) {
+        console.error(`❌ SQLite not found: ${absDb}`);
+        console.error("Run 'dbt-ui generate' first.");
+        process.exit(1);
+    }
+
+    console.log("🚀 Starting dbt-ui...");
+    console.log("DB:", absDb);
+
+    const childEnv = {
+        ...process.env,
+        DBT_UI_DB_PATH: absDb,
+        PORT: port,
+    };
+
+    spawnSync("pnpm", ["-C", "apps/web/dbt-docs-redesign", "dev"], {
+        stdio: "inherit",
+        env: childEnv,
+    });
 }
 
 main().catch((err) => {

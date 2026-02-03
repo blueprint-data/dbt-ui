@@ -58,6 +58,42 @@ export interface SearchResponse {
 export interface LineageResponse {
   upstream: ModelSummary[];
   downstream: ModelSummary[];
+  nodes?: LineageGraphNode[];
+  edges?: LineageGraphEdge[];
+}
+
+export interface LineageGraphNode {
+  id: string;
+  label: string;
+  schema: string;
+  package_name: string;
+  materialization: Materialization;
+  resource_type: ResourceType;
+  tags: string[];
+}
+
+export interface LineageGraphEdge {
+  source: string;
+  target: string;
+}
+
+export interface DatabaseNavModel {
+  unique_id: string;
+  name: string;
+}
+
+export interface DatabaseNavSchema {
+  name: string;
+  models: DatabaseNavModel[];
+}
+
+export interface DatabaseNavEntry {
+  name: string;
+  schemas: DatabaseNavSchema[];
+}
+
+export interface DatabaseNavResponse {
+  databases: DatabaseNavEntry[];
 }
 
 // Filter state
