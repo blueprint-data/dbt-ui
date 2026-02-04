@@ -19,11 +19,15 @@
     "lineage",
     "sql"
   ],
-  "author": "",
+  "author": "Juan Pablo Rivero",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/blueprint-data/dbt-ui.git"
+  },
+  "homepage": "https://github.com/blueprint-data/dbt-ui",
+  "bugs": {
+    "url": "https://github.com/blueprint-data/dbt-ui/issues"
   },
   "engines": {
     "node": ">=18.0.0"

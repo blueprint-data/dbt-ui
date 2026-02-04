@@ -1,6 +1,6 @@
 # dbt-ui
 
-[![CI](https://github.com/blueprintdata/dbt-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/blueprintdata/dbt-ui/actions/workflows/ci.yml)
+[![CI](https://github.com/blueprint-data/dbt-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/blueprint-data/dbt-ui/actions/workflows/ci.yml)
 [![NPM Version](https://img.shields.io/npm/v/dbt-ui.svg)](https://www.npmjs.com/package/dbt-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
