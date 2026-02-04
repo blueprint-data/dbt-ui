@@ -38,7 +38,7 @@ export function AppShell({
   const setGraphOpen = onGraphOpenChange ?? setInternalGraphOpen;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
       {/* Header */}
       <Header totalModels={totalModels}>
         {/* Mobile menu trigger */}
@@ -47,13 +47,13 @@ export function AppShell({
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden mr-2 hover:bg-sky-100"
+              className="lg:hidden mr-2 hover:bg-sky-100 dark:hover:bg-slate-800"
               aria-label="Open navigation"
             >
-              <Menu className="h-5 w-5 text-slate-700" />
+              <Menu className="h-5 w-5 text-foreground" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[320px] bg-white">
+          <SheetContent side="left" className="p-0 w-[320px] bg-background border-r dark:border-slate-800">
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <SheetDescription className="sr-only">
               Browse your dbt project models and databases

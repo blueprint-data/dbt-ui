@@ -120,7 +120,7 @@ function CodeBlock({ code }: { code?: string }) {
         <pre className="p-6 text-[13px] font-mono leading-relaxed overflow-visible">
           <code className="block min-w-full">
             {lines.map((line, i) => (
-              <div key={i} className="flex group/line hover:bg-white/[0.02] -mx-6 px-6 transition-colors">
+              <div key={i} className="flex group/line hover:bg-foreground/[0.02] -mx-6 px-6 transition-colors">
                 <span className="w-10 shrink-0 text-muted-foreground/20 text-right pr-6 select-none font-medium border-r border-white/5 mr-6 group-hover/line:text-muted-foreground/40 transition-colors">
                   {i + 1}
                 </span>

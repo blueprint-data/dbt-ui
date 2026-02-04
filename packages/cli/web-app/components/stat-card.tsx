@@ -42,7 +42,7 @@ export function StatCard({
             ref={cardRef}
             onMouseMove={handleMouseMove}
             className={cn(
-                "stat-card p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group bg-white/80 border border-sky-100 shadow-sm transition-all duration-300",
+                "stat-card p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group glass transition-all duration-300",
                 className
             )}
         >

@@ -42,7 +42,7 @@ export function StatCard({
             ref={cardRef}
             onMouseMove={handleMouseMove}
             className={cn(
-                "stat-card p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group bg-white/80 border border-sky-100 shadow-sm transition-all duration-300",
+                "stat-card p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group glass transition-all duration-300",
                 className
             )}
         >
@@ -50,13 +50,13 @@ export function StatCard({
                 {icon}
             </div>
 
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-600/80 z-10">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-600/80 dark:text-sky-400/80 z-10">
                 {title}
             </span>
 
-            <span className="text-3xl font-black tracking-tight text-slate-900 z-10 font-display">
+            <span className="text-3xl font-black tracking-tight text-foreground z-10 font-display">
                 {value}
-                {unit && <span className="text-lg text-slate-500 ml-0.5 font-sans">{unit}</span>}
+                {unit && <span className="text-lg text-muted-foreground ml-0.5 font-sans">{unit}</span>}
             </span>
 
             <div className="flex items-center gap-2 mt-1 z-10">
@@ -67,7 +67,7 @@ export function StatCard({
                         pulse && "animate-pulse"
                     )}
                 />
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">
+                <span className="text-[9px] font-bold text-muted-foreground dark:text-slate-400 uppercase tracking-widest">
                     {statusText}
                 </span>
             </div>

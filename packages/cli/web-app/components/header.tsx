@@ -5,6 +5,7 @@ import React from "react"
 import Link from "next/link";
 import { Database } from "lucide-react";
 import { SearchBar } from "./search-bar";
+import { ThemeToggle } from "./theme-toggle";
 
 interface HeaderProps {
   totalModels?: number;
@@ -13,7 +14,7 @@ interface HeaderProps {
 
 export function Header({ totalModels, children }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-xl border-b border-sky-200/60 shadow-sm">
+    <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-sky-200/60 dark:border-slate-800/60 shadow-sm">
       <div className="flex h-16 items-center gap-6 px-6">
         {children}
         <Link href="/" className="flex items-center gap-3 font-bold tracking-tight shrink-0 transition-all hover:opacity-70">
@@ -23,14 +24,16 @@ export function Header({ totalModels, children }: HeaderProps) {
             className="h-10 w-auto"
           />
           <div className="flex flex-col">
-            <span className="hidden sm:inline-block text-base leading-tight text-slate-900">dbt Docs</span>
-            <span className="hidden sm:inline-block text-[10px] uppercase tracking-widest text-sky-600 font-mono font-bold">Redesign v1</span>
+            <span className="hidden sm:inline-block text-base leading-tight text-slate-900 dark:text-slate-100">dbt Docs</span>
+            <span className="hidden sm:inline-block text-[10px] uppercase tracking-widest text-sky-600 dark:text-sky-400 font-mono font-bold">Redesign v1</span>
           </div>
         </Link>
 
         <SearchBar className="flex-1 max-w-xl" />
 
         <div className="hidden lg:flex items-center gap-6 ml-auto">
+          <ThemeToggle />
+          <div className="h-8 w-[1px] bg-sky-200 dark:bg-slate-800" />
           <div className="flex flex-col items-end">
             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none mb-1">system status</span>
             <div className="flex items-center gap-2">
