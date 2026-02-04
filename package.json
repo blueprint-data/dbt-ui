@@ -3,7 +3,7 @@
   "author": "Juan Pablo Rivero",
   "repository": {
     "type": "git",
-    "url": "https://github.com/blueprintdata/dbt-ui.git"
+    "url": "https://github.com/blueprint-data/dbt-ui.git"
   },
   "private": true,
   "workspaces": [
