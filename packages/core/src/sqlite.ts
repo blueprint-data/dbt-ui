@@ -7,10 +7,26 @@ let sqlPromise: Promise<initSqlJs.SqlJsStatic> | null = null;
 function findWasmFile(file: string): string {
   // With Turbopack, require.resolve() returns virtual paths like [project]/...
   // So we need to search for the WASM file dynamically in the filesystem
-  
+
   const cwd = process.cwd();
   const searchPaths: string[] = [];
-  
+
+  // Strategy 0: Check next to server.js (for standalone builds)
+  const standaloneWasm = path.join(cwd, file);
+  searchPaths.push(`standalone cwd: ${standaloneWasm}`);
+  if (fs.existsSync(standaloneWasm)) {
+    console.log('[sql.js] ✅ WASM file found at:', standaloneWasm);
+    return standaloneWasm;
+  }
+
+  // Strategy 0b: Check public folder (standalone builds)
+  const publicWasm = path.join(cwd, 'public', file);
+  searchPaths.push(`standalone public: ${publicWasm}`);
+  if (fs.existsSync(publicWasm)) {
+    console.log('[sql.js] ✅ WASM file found at:', publicWasm);
+    return publicWasm;
+  }
+
   // Strategy 1: Try workspace root first (where sql.js is actually installed in this project)
   const rootPnpmDir = path.join(cwd, '../../../node_modules/.pnpm');
   searchPaths.push(`root pnpm: ${rootPnpmDir}`);
@@ -28,7 +44,7 @@ function findWasmFile(file: string): string {
       // Continue to next strategy
     }
   }
-  
+
   // Strategy 2: Try local pnpm structure
   const pnpmDir = path.join(cwd, 'node_modules/.pnpm');
   searchPaths.push(`local pnpm: ${pnpmDir}`);
@@ -46,7 +62,7 @@ function findWasmFile(file: string): string {
       // Continue to next strategy
     }
   }
-  
+
   // Strategy 3: Try regular node_modules (npm/yarn)
   const regularPath = path.join(cwd, 'node_modules/sql.js/dist', file);
   searchPaths.push(`regular: ${regularPath}`);
@@ -54,7 +70,7 @@ function findWasmFile(file: string): string {
     console.log('[sql.js] ✅ WASM file found at:', regularPath);
     return regularPath;
   }
-  
+
   // Strategy 4: Try root regular node_modules
   const rootRegularPath = path.join(cwd, '../../../node_modules/sql.js/dist', file);
   searchPaths.push(`root regular: ${rootRegularPath}`);
@@ -62,7 +78,7 @@ function findWasmFile(file: string): string {
     console.log('[sql.js] ✅ WASM file found at:', rootRegularPath);
     return rootRegularPath;
   }
-  
+
   const errorMsg = `[sql.js] ❌ Could not locate ${file}.\nCWD: ${cwd}\nSearched:\n${searchPaths.map(p => `  - ${p}`).join('\n')}`;
   console.error(errorMsg);
   throw new Error(errorMsg);
@@ -76,7 +92,7 @@ async function getSql(): Promise<initSqlJs.SqlJsStatic> {
         if (typeof window !== 'undefined') {
           return `/${file}`;
         }
-        
+
         // Node.js: search filesystem
         try {
           return findWasmFile(file);

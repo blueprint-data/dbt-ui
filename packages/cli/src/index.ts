@@ -2,7 +2,12 @@
 import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildFromManifest, openDb } from "@dbt-ui/core";
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -78,26 +83,102 @@ function serve(cmdArgs: string[]) {
 
     if (!fs.existsSync(absDb)) {
         console.error(`❌ SQLite not found: ${absDb}`);
-        console.error("Run 'dbt-ui generate' first.");
+        console.error(`Expected at: ${absDb}`);
+        console.error("\nTo fix this:");
+        console.error("1. Run 'dbt-ui generate' in your dbt project root.");
+        console.error("2. Or use --db <path> to specify the database location.");
         process.exit(1);
     }
 
-    console.log("🚀 Starting dbt-ui...");
-    console.log("DB:", absDb);
+    console.log("\n============================================================");
+    console.log("🚀 dbt-ui is starting...");
+    console.log("============================================================\n");
+    console.log(`📂 Database: ${absDb}`);
+    console.log(`🌐 URL:      http://localhost:${port}`);
+    console.log("\nPress Ctrl+C to stop.");
+    console.log("------------------------------------------------------------\n");
 
     const childEnv = {
         ...process.env,
         DBT_UI_DB_PATH: absDb,
         PORT: port,
+        NODE_ENV: "production" as any,
     };
 
-    // Resolve to repo root (../../ from packages/cli)
-    const webAppDir = path.resolve(__dirname, "../../apps/web/dbt-docs-redesign");
+    // Try to find the web app in various locations
+    // 1. Monorepo dev: packages/cli -> ../../apps/web/dbt-docs-redesign
+    // 2. Standalone build: packages/cli -> ../../apps/web/dbt-docs-redesign/.next/standalone
+    // 3. Installed package: node_modules/@dbt-ui/cli -> ../web-app
 
-    spawnSync("pnpm", ["-C", webAppDir, "dev"], {
-        stdio: "inherit",
-        env: childEnv,
-    });
+    const possiblePaths = [
+        // Standalone build (production) - Next.js preserves the folder structure
+        path.resolve(__dirname, "../../apps/web/dbt-docs-redesign/.next/standalone/apps/web/dbt-docs-redesign"),
+        // Monorepo dev
+        path.resolve(__dirname, "../../apps/web/dbt-docs-redesign"),
+        // Installed from npm
+        path.resolve(__dirname, "../web-app"),
+    ];
+
+    let webAppDir: string | null = null;
+    let isStandalone = false;
+
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            webAppDir = p;
+            // Check if it's a standalone build
+            if (p.includes("standalone") || fs.existsSync(path.join(p, "server.js"))) {
+                isStandalone = true;
+            }
+            break;
+        }
+    }
+
+    if (!webAppDir) {
+        console.error("❌ Error: Web application not found.");
+        console.error("Searched in:");
+        possiblePaths.forEach(p => console.error(`  - ${p}`));
+        console.error("\nTry building the web app first:");
+        console.error("  cd apps/web/dbt-docs-redesign && npm run build");
+        process.exit(1);
+    }
+
+    console.log(`📦 Mode: ${isStandalone ? "Standalone" : "Development"}`);
+    console.log(`📁 App:  ${webAppDir}\n`);
+
+    if (isStandalone) {
+        // For standalone builds, ensure static and public dirs are in place
+        const standaloneDir = webAppDir;
+        // Go up from .next/standalone/apps/web/dbt-docs-redesign to apps/web/dbt-docs-redesign
+        const sourceDir = path.resolve(standaloneDir, "../../../../..");
+
+        // Copy static files if not present (needed for standalone)
+        const staticDest = path.join(standaloneDir, ".next/static");
+        const staticSrc = path.join(sourceDir, ".next/static");
+        if (!fs.existsSync(staticDest) && fs.existsSync(staticSrc)) {
+            fs.cpSync(staticSrc, staticDest, { recursive: true });
+        }
+
+        // Copy public files if not present
+        const publicDest = path.join(standaloneDir, "public");
+        const publicSrc = path.join(sourceDir, "public");
+        if (!fs.existsSync(publicDest) && fs.existsSync(publicSrc)) {
+            fs.cpSync(publicSrc, publicDest, { recursive: true });
+        }
+
+        // Run the standalone server directly with Node
+        spawnSync("node", ["server.js"], {
+            stdio: "inherit",
+            env: childEnv,
+            cwd: standaloneDir,
+        });
+    } else {
+        // Development mode - use npm start
+        spawnSync("npm", ["run", "start"], {
+            stdio: "inherit",
+            env: childEnv,
+            cwd: webAppDir,
+        });
+    }
 }
 
 main().catch((err) => {
