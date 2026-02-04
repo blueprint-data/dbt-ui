@@ -7,6 +7,7 @@ import { ModelsTable } from "@/components/models-table";
 import { Pagination } from "@/components/pagination";
 import { fetchModels } from "@/lib/api";
 import { Database, GitBranch, RefreshCw } from "lucide-react";
+import { StatCard } from "@/components/stat-card";
 import type { ModelSummary, Facets, FiltersState } from "@/lib/types";
 
 const ITEMS_PER_PAGE = 20;
@@ -71,49 +72,43 @@ export default function ExplorerPage() {
       allModels={models}
       selectedModelId={null}
     >
-      <div className="p-6 md:p-8 max-w-[1600px] mx-auto animate-in-up bg-gradient-to-b from-[#f8fbff] via-[#eef5ff] to-[#e2ecff] rounded-3xl shadow-lg">
+      <div className="p-6 md:p-8 max-w-[1600px] mx-auto bg-gradient-to-b from-[#f8fbff] via-[#eef5ff] to-[#e2ecff] rounded-3xl shadow-lg">
         <div className="flex flex-col gap-6 md:gap-8">
           {/* Dashboard Stats Header */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="stat-card stagger-1 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group bg-white/80 border border-sky-100 shadow-sm">
-              <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity text-sky-300">
-                <Database className="h-12 w-12" />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-600/80">data assets</span>
-              <span className="text-3xl font-black tracking-tight text-slate-900">{total.toLocaleString()}</span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_oklch(var(--emerald-500))]" />
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Active Manifest</span>
-              </div>
-            </div>
+            <StatCard
+              title="data assets"
+              value={total.toLocaleString()}
+              statusText="Active Manifest"
+              statusColor="bg-emerald-500"
+              icon={<Database className="h-12 w-12" />}
+              className="reveal-init animate-in-up stagger-1"
+            />
 
-            <div className="stat-card stagger-2 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group bg-white/80 border border-sky-100 shadow-sm">
-              <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity text-sky-300">
-                <GitBranch className="h-12 w-12" />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-600/80">test coverage</span>
-              <span className="text-3xl font-black tracking-tight text-slate-900">94.2<span className="text-lg text-slate-500">%</span></span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Industrial Standard</span>
-              </div>
-            </div>
+            <StatCard
+              title="test coverage"
+              value="94.2"
+              unit="%"
+              statusText="Industrial Standard"
+              statusColor="bg-blue-500"
+              icon={<GitBranch className="h-12 w-12" />}
+              className="reveal-init animate-in-up stagger-2"
+            />
 
-            <div className="stat-card stagger-3 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group bg-white/80 border border-sky-100 shadow-sm">
-              <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity text-sky-300">
-                <RefreshCw className="h-12 w-12" />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-600/80">last analytics</span>
-              <span className="text-3xl font-black tracking-tight text-slate-900">2<span className="text-lg text-slate-500">m ago</span></span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Live Syncing</span>
-              </div>
-            </div>
+            <StatCard
+              title="last analytics"
+              value="2"
+              unit="m ago"
+              statusText="Live Syncing"
+              statusColor="bg-violet-500"
+              icon={<RefreshCw className="h-12 w-12" />}
+              className="reveal-init animate-in-up stagger-3"
+              pulse
+            />
           </div>
 
           {/* Filters + Results Count (Popup global) */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-3 reveal-init animate-in-up stagger-4">
             <div className="flex items-center gap-3">
               <MobileFilters
                 facets={facets}
@@ -145,14 +140,14 @@ export default function ExplorerPage() {
 
           {/* Error State */}
           {error && (
-            <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-3">
+            <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-3 reveal-init animate-in-up">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
               {error}
             </div>
           )}
 
           {/* Models Table */}
-          <div className="rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm overflow-hidden shadow-md">
+          <div className="rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm overflow-hidden shadow-md reveal-init animate-in-up stagger-5">
             <ModelsTable models={models} isLoading={isLoading} />
           </div>
 
