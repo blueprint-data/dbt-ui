@@ -100,11 +100,11 @@ cat > "$CLI_DIR/package.json" << 'EOF'
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/blueprintdata/dbt-ui.git"
+    "url": "https://github.com/blueprint-data/dbt-ui.git"
   },
-  "homepage": "https://github.com/blueprintdata/dbt-ui",
+  "homepage": "https://github.com/blueprint-data/dbt-ui",
   "bugs": {
-    "url": "https://github.com/blueprintdata/dbt-ui/issues"
+    "url": "https://github.com/blueprint-data/dbt-ui/issues"
   },
   "engines": {
     "node": ">=18.0.0"
