@@ -1,5 +1,9 @@
 # dbt-ui
 
+[![CI](https://github.com/blueprintdata/dbt-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/blueprintdata/dbt-ui/actions/workflows/ci.yml)
+[![NPM Version](https://img.shields.io/npm/v/dbt-ui.svg)](https://www.npmjs.com/package/dbt-ui)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A modern, full-stack solution for visualizing and exploring dbt projects. This monorepo contains both the data processing backend and a beautiful web interface for dbt documentation.
 
 ## 🏗️ Project Structure
@@ -152,16 +156,26 @@ npm run dev
 
 ### Backend
 - **TypeScript** - Type-safe development
-- **better-sqlite3** - Fast, synchronous SQLite3
+- **sql.js** - SQLite compiled to WebAssembly (portable, runs in Node.js and browsers)
 - **Node.js** - Runtime environment
 
+#### Why sql.js?
+We chose sql.js over native SQLite bindings for several key advantages:
+
+- ✅ **Zero native dependencies** - Pure JavaScript + WebAssembly, no compilation needed
+- ✅ **Cross-platform** - Works on any OS (Windows, macOS, Linux) without platform-specific builds
+- ✅ **Portable** - Single .wasm file, easy to deploy and distribute
+- ✅ **Modern** - Latest SQLite features compiled directly from source
+- ✅ **Flexible** - Can run in both Node.js and browser environments
+- ✅ **Easy setup** - No build tools or native compilation required
+
 ### Frontend
-- **Next.js 16** - React framework
-- **React 19** - UI library
-- **TypeScript** - Type safety
-- **Tailwind CSS 4** - Styling
-- **Radix UI** - Accessible components
-- **Recharts** - Data visualization
+- **Next.js 16** - React framework with App Router
+- **React 19** - UI library with Server Components
+- **TypeScript** - Type safety across the stack
+- **Tailwind CSS 4** - Modern utility-first styling
+- **Radix UI** - Accessible component primitives
+- **Recharts** - Data visualization and charts
 
 ## 📝 Workflow
 
@@ -191,15 +205,105 @@ The following files/directories are excluded via `.gitignore`:
 - **`packages/cli/src/index.ts`** - CLI entry point
 - **`apps/web/dbt-docs-redesign/`** - Web application
 
-## 🤝 Contributing
+## 🔧 Troubleshooting
 
-Contributions are welcome! Please:
+### WASM file not found error
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+If you see an error like:
+```
+ENOENT: no such file or directory, open '/ROOT/node_modules/.pnpm/sql.js@1.13.0/node_modules/sql.js/dist/sql-wasm.wasm'
+```
+
+**Solution:**
+
+1. **Stop the dev server** (Ctrl+C)
+
+2. **Delete the `.next` build cache:**
+   ```bash
+   rm -rf apps/web/dbt-docs-redesign/.next
+   ```
+
+3. **Verify WASM file exists in public:**
+   ```bash
+   ls -lh apps/web/dbt-docs-redesign/public/sql-wasm.wasm
+   ```
+   
+   If missing, run the setup script:
+   ```bash
+   npm run setup:wasm
+   ```
+
+4. **Restart the dev server:**
+   ```bash
+   cd apps/web/dbt-docs-redesign
+   npm run dev
+   ```
+
+The `sql-wasm.wasm` file should be automatically copied to the `public` directory on the next build.
+
+### Database file location
+
+The application looks for the SQLite database in the following order:
+1. `DBT_UI_DB_PATH` environment variable (absolute path)
+2. `target/dbt_ui.sqlite` (relative to working directory)
+
+**Example usage:**
+```bash
+# Set database path for current session
+export DBT_UI_DB_PATH=/path/to/your/dbt-project/target/dbt_ui.sqlite
+
+# Or inline with the command
+DBT_UI_DB_PATH=/path/to/project/target/dbt_ui.sqlite npm run dev
+```
+
+### Database not found
+
+If you get "database not found" errors:
+
+1. **Generate the database first:**
+   ```bash
+   cd your-dbt-project
+   npx @dbt-ui/cli generate
+   ```
+
+2. **Verify the file exists:**
+   ```bash
+   ls -lh target/dbt_ui.sqlite
+   ```
+
+3. **Check the path is correct:**
+   ```bash
+   echo $DBT_UI_DB_PATH
+   ```
+
+## 🚀 CI/CD & Automated Releases
+
+This project uses **GitHub Actions** and **Changesets** for automated testing and publishing.
+
+### 🧪 Workflows
+- **CI**: Runs on every PR to ensure the code builds and passes basic checks.
+- **Release**: Automatically publishes to NPM and creates a GitHub Release when a version change is merged.
+
+### 🔑 Configuration (Required for Maintainers)
+
+To enable automated publishing to NPM, you must add an `NPM_TOKEN` to your GitHub repository secrets:
+
+1. Generate an **Automation** token on [npmjs.com](https://www.npmjs.com/).
+2. In your GitHub repository, go to **Settings > Secrets and variables > Actions**.
+3. Create a new repository secret named `NPM_TOKEN`.
+4. Paste your NPM token.
+
+### 📦 How to publish a new version
+
+We use **Changesets** to manage versioning:
+
+1. Run `pnpm changeset` locally to describe your change (major, minor, or patch).
+2. Commit the generated markdown file in `.changeset/`.
+3. Push to `main`.
+4. A "Version Packages" PR will be opened automatically.
+5. Merging that PR will trigger the automated publication to NPM.
+
+---
 
 ## 📄 License
 
@@ -210,6 +314,51 @@ Contributions are welcome! Please:
 For questions or issues:
 - Open an issue on GitHub
 - Contact the maintainers
+
+## 🚀 Next Steps (Roadmap)
+
+### Phase 1: Standalone Packaging (Priority)
+The goal is to make dbt-ui a single npm package that can be installed and run anywhere.
+
+- [ ] **Configure Next.js standalone output**
+  - Add `output: 'standalone'` to `next.config.mjs`
+  - Build generates self-contained `.next/standalone` folder
+  
+- [ ] **Update CLI for bundled web server**
+  - Modify `@dbt-ui/cli` to serve from standalone build
+  - Add `dbt-ui serve` command that starts the embedded web server
+  
+- [ ] **Publish to npm**
+  - Package core + cli + standalone web as single `dbt-ui` package
+  - Users run: `npx dbt-ui serve --manifest ./target/manifest.json`
+
+### Phase 2: Feature Enhancements
+- [ ] **Dark mode toggle** - Add theme switcher in header
+- [ ] **Export lineage as image** - Download DAG as PNG/SVG
+- [ ] **Column-level lineage** - Track data flow at column granularity
+- [ ] **Test results integration** - Show test pass/fail status per model
+- [ ] **dbt Cloud integration** - Pull metadata from dbt Cloud API
+
+### Phase 3: Performance & Scale
+- [ ] **Test with large projects** - Validate with 500+ models
+- [ ] **Virtual scrolling for lineage** - Handle massive DAGs smoothly
+- [ ] **Lazy loading for tree** - Load children on demand
+- [ ] **Search indexing optimization** - Faster full-text search
+
+### Phase 4: Deployment Options
+- [ ] **Docker image** - Pre-built container for quick deployment
+- [ ] **Static export** - Generate static HTML for GitHub Pages
+- [ ] **Embedded mode** - Iframe-friendly version for portals
+
+---
+
+## 📋 Recent Updates
+
+### 2026-02-03
+- ✅ Added 12 premium micro-animations (hover effects, page transitions, loading shimmer)
+- ✅ Verified lineage graph working with real dbt projects
+- ✅ Full-text search and tree navigation tested
+- ✅ Database mode shows schema hierarchy correctly
 
 ---
 

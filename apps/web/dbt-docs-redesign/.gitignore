@@ -63,6 +63,11 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
+# Database files
+target/
+*.sqlite
+*.db
+
 # Temporary files
 *.tmp
 *.temp
