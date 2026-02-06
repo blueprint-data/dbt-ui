@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* @custom-variant dark (&:is(.dark *)); */
+@variant dark (&:where(.dark, .dark *));
 
 :root {
   /* Light theme - Sky blue inspired professional palette */
@@ -167,7 +167,7 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/70 backdrop-blur-2xl dark:bg-slate-900/60;
+    @apply bg-white/70 backdrop-blur-2xl dark:bg-[oklch(0.15_0.03_250)]/80;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow:
       0 4px 6px -1px rgba(0, 0, 0, 0.05),
@@ -176,15 +176,15 @@
   }
 
   .dark .glass {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
-      0 10px 25px -5px rgba(0, 0, 0, 0.3),
-      0 8px 10px -6px rgba(0, 0, 0, 0.3),
+      0 10px 25px -5px rgba(0, 0, 0, 0.5),
+      0 8px 10px -6px rgba(0, 0, 0, 0.5),
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   .glass-muted {
-    @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-sm dark:bg-slate-800/40 dark:border-white/10;
+    @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-sm dark:bg-[oklch(0.2_0.04_245)]/50 dark:border-white/10;
   }
 
   .dark-section {
