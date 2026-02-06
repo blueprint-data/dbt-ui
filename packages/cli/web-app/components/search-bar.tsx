@@ -135,7 +135,7 @@ export function SearchBar({ className }: SearchBarProps) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query && results.length > 0 && setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="pl-9 pr-8 h-10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-sky-400 focus:border-sky-400 transition-all rounded-xl shadow-sm hover:border-sky-200"
+          className="pl-9 pr-8 h-10 bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-sky-400 focus:border-sky-400 transition-all rounded-xl shadow-sm hover:border-sky-200 dark:hover:border-slate-700"
         />
         {query && (
           <button
@@ -145,7 +145,7 @@ export function SearchBar({ className }: SearchBarProps) {
               setResults([]);
               setIsOpen(false);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full transition-all"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all"
           >
             <X className="h-3 w-3" />
           </button>
@@ -153,7 +153,7 @@ export function SearchBar({ className }: SearchBarProps) {
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden z-50 max-h-[400px] overflow-y-auto ring-1 ring-slate-900/5">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden z-50 max-h-[400px] overflow-y-auto ring-1 ring-slate-900/5 dark:ring-white/10">
           {isLoading ? (
             <div className="p-4 text-center text-slate-500 text-sm">
               Searching...
@@ -166,7 +166,7 @@ export function SearchBar({ className }: SearchBarProps) {
             <div>
               {modelResults.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100">
+                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
                     Models
                   </div>
                   {modelResults.map((result) => {
@@ -178,18 +178,18 @@ export function SearchBar({ className }: SearchBarProps) {
                         type="button"
                         onClick={() => handleSelect(result)}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border-b border-slate-50 last:border-0",
-                          selectedIndex === idx ? "bg-sky-50" : "hover:bg-slate-50"
+                          "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border-b border-slate-50 dark:border-slate-900 last:border-0",
+                          selectedIndex === idx ? "bg-sky-50 dark:bg-sky-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                         )}
                       >
                         <div className={cn(
                           "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                          selectedIndex === idx ? "bg-sky-100 text-sky-600" : "bg-slate-100 text-slate-500"
+                          selectedIndex === idx ? "bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                         )}>
                           <FileCode className="h-4 w-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className={cn("font-bold text-sm truncate", selectedIndex === idx ? "text-sky-900" : "text-slate-900")}>
+                          <div className={cn("font-bold text-sm truncate", selectedIndex === idx ? "text-sky-900 dark:text-sky-400" : "text-slate-900 dark:text-slate-100")}>
                             {result.name}
                           </div>
                           {result.description && (
@@ -207,12 +207,12 @@ export function SearchBar({ className }: SearchBarProps) {
 
               {Object.keys(columnsByModel).length > 0 && (
                 <div>
-                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100 border-t">
+                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 border-t">
                     Columns
                   </div>
                   {Object.entries(columnsByModel).map(([modelName, cols]) => (
                     <div key={modelName}>
-                      <div className="px-3 py-1.5 text-[10px] text-slate-400 font-mono bg-slate-50/50">
+                      <div className="px-3 py-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-mono bg-slate-50/50 dark:bg-slate-950/30">
                         {modelName}
                       </div>
                       {cols.map((result) => {
@@ -224,13 +224,13 @@ export function SearchBar({ className }: SearchBarProps) {
                             type="button"
                             onClick={() => handleSelect(result)}
                             className={cn(
-                              "w-full flex items-center gap-3 px-3 py-2 text-left transition-colors border-b border-slate-50 last:border-0 pl-6",
-                              selectedIndex === idx ? "bg-sky-50" : "hover:bg-slate-50"
+                              "w-full flex items-center gap-3 px-3 py-2 text-left transition-colors border-b border-slate-50 dark:border-slate-900 last:border-0 pl-6",
+                              selectedIndex === idx ? "bg-sky-50 dark:bg-sky-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                             )}
                           >
                             <Columns3 className={cn("h-4 w-4 shrink-0", selectedIndex === idx ? "text-sky-500" : "text-slate-400")} />
                             <div className="flex-1 min-w-0">
-                              <div className={cn("font-medium text-sm truncate", selectedIndex === idx ? "text-sky-900" : "text-slate-900")}>
+                              <div className={cn("font-medium text-sm truncate", selectedIndex === idx ? "text-sky-900 dark:text-sky-400" : "text-slate-900 dark:text-slate-100")}>
                                 {result.name}
                               </div>
                               {result.description && (

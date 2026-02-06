@@ -255,7 +255,7 @@ export function LineageGraph({
         .then(res => res.json())
         .then((data) => {
           if (cancelled) return;
-          
+
           // Set all models and edges for global view
           setGraphModels(data.models || []);
           setGraphEdges(data.edges || []);
@@ -269,7 +269,7 @@ export function LineageGraph({
         .finally(() => {
           if (!cancelled) setGraphLoading(false);
         });
-      
+
       return () => { cancelled = true; };
     }
 
@@ -525,47 +525,53 @@ export function LineageGraph({
     }
   }, [animationFrame]);
 
-  const drawNode = useCallback((ctx: CanvasRenderingContext2D, node: GraphNode, isSel: boolean, isHov: boolean, isHigh: boolean, isDim: boolean) => {
+  const drawNode = useCallback((ctx: CanvasRenderingContext2D, node: GraphNode, isSel: boolean, isHov: boolean, isHigh: boolean, isDim: boolean, scale: number) => {
     const x = node.x - NODE_WIDTH / 2;
     const y = node.y - NODE_HEIGHT / 2;
     const opacity = isDim ? 0.2 : 1;
-    const accent = MATERIALIZATION_COLORS[node.materialization] || MATERIALIZATION_COLORS.default;
     ctx.globalAlpha = opacity;
 
-    if (isSel || isHov) {
+    // LOD Level 1: Skip shadows if not selected/hovered or if too zoomed out
+    if ((isSel || isHov) && scale > 0.3) {
       ctx.shadowColor = isSel ? NODE_SELECTED_COLOR : "rgba(34, 211, 238, 0.4)";
       ctx.shadowBlur = isSel ? 30 : 20;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
     } else {
       ctx.shadowBlur = 0;
     }
 
     ctx.beginPath();
-    ctx.roundRect(x, y, NODE_WIDTH, NODE_HEIGHT, 8); // Rounded corners más sutiles
+    ctx.roundRect(x, y, NODE_WIDTH, NODE_HEIGHT, 8);
     ctx.fillStyle = isSel ? NODE_SELECTED_COLOR : (isHov || isHigh) ? NODE_HOVER_COLOR : "rgba(91, 165, 189, 0.85)";
     ctx.fill();
 
-    // Border para mejor definición
-    ctx.strokeStyle = isSel ? "#16a34a" : "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = isSel ? 2.5 : 1;
-    ctx.stroke();
+    // LOD Level 2: Skip border and text at very small scales
+    if (scale > 0.15) {
+      ctx.strokeStyle = isSel ? "#16a34a" : "rgba(255, 255, 255, 0.1)";
+      ctx.lineWidth = isSel ? 2.5 : 1;
+      ctx.stroke();
 
-    // Texto legible optimizado para tamaño mejorado
-    ctx.fillStyle = isSel ? "#0a1f2a" : TEXT_COLOR;
-    ctx.font = "bold 13px 'Geist', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const maxWidth = NODE_WIDTH - 20;
-    let displayText = node.label.toLowerCase();
-    // Truncate text if too long
-    while (ctx.measureText(displayText).width > maxWidth && displayText.length > 0) {
-      displayText = displayText.slice(0, -1);
+      // LOD Level 3: Render text only if identifiable
+      if (scale > 0.25 || isSel) {
+        ctx.fillStyle = isSel ? "#0a1f2a" : TEXT_COLOR;
+        ctx.font = "bold 13px 'Geist', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const maxWidth = NODE_WIDTH - 20;
+        let displayText = node.label.toLowerCase();
+
+        // Truncate logic
+        if (ctx.measureText(displayText).width > maxWidth) {
+          while (ctx.measureText(displayText).width > maxWidth - 10 && displayText.length > 0) {
+            displayText = displayText.slice(0, -1);
+          }
+          displayText += '...';
+        }
+        ctx.fillText(displayText, x + NODE_WIDTH / 2, y + NODE_HEIGHT / 2);
+      }
     }
-    if (displayText.length < node.label.length) displayText += '...';
-    ctx.fillText(displayText, x + NODE_WIDTH / 2, y + NODE_HEIGHT / 2);
 
     ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
   }, []);
 
   useEffect(() => {
@@ -591,23 +597,50 @@ export function LineageGraph({
     const activeContext = highlightedLineage.size > 0 || searchResults.length > 0;
     const searchMatchIds = new Set(searchResults.map(r => r.id));
 
+    // Calculate viewport bounds in world coordinates for culling
+    const viewportMinX = -transform.x / transform.scale;
+    const viewportMinY = -transform.y / transform.scale;
+    const viewportMaxX = (dimensions.width - transform.x) / transform.scale;
+    const viewportMaxY = (dimensions.height - transform.y) / transform.scale;
+    const padding = 100; // Buffer for smooth culling
+
     edges.forEach(e => {
       const s = nodeMap.get(e.source);
       const t = nodeMap.get(e.target);
       if (s && t) {
-        const high = highlightedLineage.has(s.id) && highlightedLineage.has(t.id);
-        const dim = activeContext && !high;
-        drawEdge(ctx, s, t, high, dim);
+        // Culling Check: Is any part of the edge in the viewport?
+        const isVisible = !(
+          Math.max(s.x, t.x) < viewportMinX - padding ||
+          Math.min(s.x, t.x) > viewportMaxX + padding ||
+          Math.max(s.y, t.y) < viewportMinY - padding ||
+          Math.min(s.y, t.y) > viewportMaxY + padding
+        );
+
+        if (isVisible) {
+          const high = highlightedLineage.has(s.id) && highlightedLineage.has(t.id);
+          const dim = activeContext && !high;
+          drawEdge(ctx, s, t, high, dim);
+        }
       }
     });
 
     nodes.forEach(n => {
-      const isSel = n.id === activeNodeId;
-      const isHov = hoveredNode?.id === n.id;
-      const isHigh = highlightedLineage.has(n.id);
-      const isMatch = searchMatchIds.has(n.id);
-      const dim = activeContext && !isHigh && !isMatch;
-      drawNode(ctx, n, isSel, isHov, isHigh || isMatch, dim);
+      // Culling Check: Is node in viewport?
+      const isVisible = (
+        n.x + NODE_WIDTH / 2 > viewportMinX - padding &&
+        n.x - NODE_WIDTH / 2 < viewportMaxX + padding &&
+        n.y + NODE_HEIGHT / 2 > viewportMinY - padding &&
+        n.y - NODE_HEIGHT / 2 < viewportMaxY + padding
+      );
+
+      if (isVisible) {
+        const isSel = n.id === activeNodeId;
+        const isHov = hoveredNode?.id === n.id;
+        const isHigh = highlightedLineage.has(n.id);
+        const isMatch = searchMatchIds.has(n.id);
+        const dim = activeContext && !isHigh && !isMatch;
+        drawNode(ctx, n, isSel, isHov, isHigh || isMatch, dim, transform.scale);
+      }
     });
 
     ctx.restore();
@@ -652,14 +685,14 @@ export function LineageGraph({
       const miniScale = Math.min(miniMapW / worldW, miniMapH / worldH) * 0.9;
 
       // Draw Nodes in Minimap
-        nodes.forEach(n => {
-          const mx = miniMapX + (n.x - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
-          const my = miniMapY + (n.y - worldMinY) * miniScale + (miniMapH - worldH * miniScale) / 2;
-          ctx.fillStyle = n.id === activeNodeId ? NODE_SELECTED_COLOR : "rgba(91, 165, 189, 0.5)";
-          ctx.beginPath();
-          ctx.arc(mx, my, 2, 0, Math.PI * 2);
-          ctx.fill();
-        });
+      nodes.forEach(n => {
+        const mx = miniMapX + (n.x - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;
+        const my = miniMapY + (n.y - worldMinY) * miniScale + (miniMapH - worldH * miniScale) / 2;
+        ctx.fillStyle = n.id === activeNodeId ? NODE_SELECTED_COLOR : "rgba(91, 165, 189, 0.5)";
+        ctx.beginPath();
+        ctx.arc(mx, my, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
       // Draw Viewport Rect
       const vpX = miniMapX + ((-transform.x / transform.scale) - worldMinX) * miniScale + (miniMapW - worldW * miniScale) / 2;

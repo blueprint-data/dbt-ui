@@ -92,12 +92,12 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex items-center justify-between px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 border-b border-slate-200">
+      <div className="flex items-center justify-between px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-sky-500" />
           <span>Database</span>
         </div>
-        <span className="font-mono text-xs text-slate-400">{totalModels}</span>
+        <span className="font-mono text-xs text-muted-foreground/60">{totalModels}</span>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -116,17 +116,17 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
             const dbOpen = openDbs.has(db.name);
             const dbCount = db.schemas.reduce((acc, s) => acc + s.models.length, 0);
             return (
-              <div key={db.name} className="border border-slate-200 rounded-lg bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <div key={db.name} className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggleDb(db.name)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50"
+                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                 >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    {dbOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    {dbOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     <span className="truncate">{db.name}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-500">{dbCount}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{dbCount}</span>
                 </button>
 
                 {dbOpen && (
@@ -135,18 +135,18 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
                       const key = `${db.name}:${schema.name}`;
                       const schemaOpen = openSchemas.has(key);
                       return (
-                        <div key={key} className="rounded-md border border-slate-100 bg-slate-50">
+                        <div key={key} className="rounded-md border border-slate-100 dark:border-slate-800/60">
                           <button
                             type="button"
                             onClick={() => toggleSchema(db.name, schema.name)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-white"
+                            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-white dark:hover:bg-slate-800/40 rounded-t-md transition-colors"
                           >
-                            <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
-                              {schemaOpen ? <ChevronDown className="h-3.5 w-3.5 text-slate-400" /> : <ChevronRight className="h-3.5 w-3.5 text-slate-400" />}
-                              <Table2 className="h-3.5 w-3.5 text-slate-400" />
+                            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground/80">
+                              {schemaOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                              <Table2 className="h-3.5 w-3.5 text-muted-foreground" />
                               <span className="truncate">{schema.name}</span>
                             </div>
-                            <span className="text-[10px] font-mono text-slate-500">{schema.models.length}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">{schema.models.length}</span>
                           </button>
 
                           {schemaOpen && (
@@ -159,13 +159,13 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
                                     type="button"
                                     onClick={() => handleSelect(m.unique_id)}
                                     className={cn(
-                                      "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-sm",
+                                      "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-sm transition-colors",
                                       isSel
-                                        ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
-                                        : "hover:bg-white border border-transparent text-slate-700"
+                                        ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 font-bold"
+                                        : "hover:bg-white dark:hover:bg-slate-800 border border-transparent text-muted-foreground hover:text-foreground"
                                     )}
                                   >
-                                    <FileCode className={cn("h-3.5 w-3.5", isSel ? "text-emerald-500" : "text-slate-400")} />
+                                    <FileCode className={cn("h-3.5 w-3.5", isSel ? "text-emerald-500" : "text-muted-foreground")} />
                                     <span className="truncate">{m.name}</span>
                                   </button>
                                 );

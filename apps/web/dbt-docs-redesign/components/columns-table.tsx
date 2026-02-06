@@ -51,8 +51,8 @@ export function ColumnsTable({ columns, highlightColumn }: ColumnsTableProps) {
             />
           </svg>
         </div>
-        <h3 className="font-medium text-slate-900 mb-1">No columns defined</h3>
-        <p className="text-sm text-slate-500">
+        <h3 className="font-medium text-foreground mb-1">No columns defined</h3>
+        <p className="text-sm text-muted-foreground">
           This model doesn&apos;t have any column definitions.
         </p>
       </div>
@@ -69,30 +69,30 @@ export function ColumnsTable({ columns, highlightColumn }: ColumnsTableProps) {
             placeholder="Search columns..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white border-slate-200 focus:bg-white focus:border-sky-300 h-10 text-sm text-slate-900 placeholder:text-slate-400"
+            className="pl-9 bg-card border-border focus:bg-card focus:border-sky-300 h-10 text-sm text-foreground placeholder:text-muted-foreground"
           />
         </div>
-        <div className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">
-          Showing <span className="text-sky-600">{filteredColumns.length}</span> of {columns.length} columns
+        <div className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground">
+          Showing <span className="text-sky-600 dark:text-sky-400">{filteredColumns.length}</span> of {columns.length} columns
         </div>
       </div>
 
       <div className="w-full">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+            <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200/60 dark:border-slate-800/60">
+              <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em]">
                 Column Name
               </th>
-              <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] hidden sm:table-cell">
+              <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em] hidden sm:table-cell">
                 Data Type
               </th>
-              <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] hidden md:table-cell">
+              <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em] hidden md:table-cell">
                 Description
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border/60">
             {filteredColumns.map((column) => {
               const isHighlighted =
                 highlightColumn?.toLowerCase() === column.name.toLowerCase();
@@ -103,8 +103,8 @@ export function ColumnsTable({ columns, highlightColumn }: ColumnsTableProps) {
                   className={cn(
                     "group transition-all",
                     isHighlighted
-                      ? "bg-sky-50 border-l-2 border-l-sky-500"
-                      : "hover:bg-slate-50"
+                      ? "bg-sky-50 dark:bg-sky-900/20 border-l-2 border-l-sky-500"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-900/30"
                   )}
                 >
                   <td className="px-6 py-4">
@@ -113,14 +113,14 @@ export function ColumnsTable({ columns, highlightColumn }: ColumnsTableProps) {
                         "h-1.5 w-1.5 rounded-full transition-all",
                         isHighlighted ? "bg-sky-500" : "bg-slate-200 group-hover:bg-sky-400"
                       )} />
-                      <code className="text-[13px] font-black font-mono text-slate-900 tracking-tight uppercase">
+                      <code className="text-[13px] font-black font-mono text-foreground tracking-tight uppercase">
                         {column.name}
                       </code>
                     </div>
                   </td>
                   <td className="px-6 py-4 hidden sm:table-cell">
                     {column.type ? (
-                      <Badge variant="outline" className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] py-0 px-2 rounded-md border-slate-200 bg-slate-50 text-slate-600">
+                      <Badge variant="outline" className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] py-0 px-2 rounded-md border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-muted-foreground">
                         {column.type}
                       </Badge>
                     ) : (
@@ -128,7 +128,7 @@ export function ColumnsTable({ columns, highlightColumn }: ColumnsTableProps) {
                     )}
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
-                    <span className="text-xs text-slate-500 leading-relaxed font-medium group-hover:text-slate-700 transition-colors">
+                    <span className="text-xs text-muted-foreground leading-relaxed font-medium group-hover:text-foreground transition-colors">
                       {column.description || "No description provided for this column asset."}
                     </span>
                   </td>

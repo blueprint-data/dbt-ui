@@ -72,7 +72,7 @@ export default function ExplorerPage() {
       allModels={models}
       selectedModelId={null}
     >
-      <div className="p-6 md:p-8 max-w-[1600px] mx-auto bg-gradient-to-b from-[#f8fbff] via-[#eef5ff] to-[#e2ecff] rounded-3xl shadow-lg">
+      <div className="p-6 md:p-8 max-w-[1600px] mx-auto bg-gradient-to-b from-[#f8fbff] via-[#eef5ff] to-[#e2ecff] dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 rounded-3xl shadow-[0_32px_64px_-16px_rgba(14,165,233,0.1)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white dark:border-white/5">
         <div className="flex flex-col gap-6 md:gap-8">
           {/* Dashboard Stats Header */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -147,7 +147,7 @@ export default function ExplorerPage() {
           )}
 
           {/* Models Table */}
-          <div className="rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm overflow-hidden shadow-md reveal-init animate-in-up stagger-5">
+          <div className="rounded-2xl glass overflow-hidden reveal-init animate-in-up stagger-5">
             <ModelsTable models={models} isLoading={isLoading} />
           </div>
 

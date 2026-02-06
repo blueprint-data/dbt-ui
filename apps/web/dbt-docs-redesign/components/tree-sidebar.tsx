@@ -99,7 +99,7 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
   return (
     <aside
       className={cn(
-        "w-[340px] z-20 border-r border-slate-200 flex flex-col h-full bg-gradient-to-b from-white via-white to-slate-50 overflow-hidden",
+        "w-[340px] z-20 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full bg-gradient-to-b from-white via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 overflow-hidden",
         className
       )}
     >
@@ -112,13 +112,13 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
             placeholder="Filter models..."
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            className="pl-10 pr-10 h-10 bg-slate-50 border-transparent text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500/10 focus-visible:bg-white rounded-xl transition-all shadow-sm group-hover:bg-white group-hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+            className="pl-10 pr-10 h-10 bg-slate-50 dark:bg-slate-900 border-transparent dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500/10 focus-visible:bg-white dark:focus-visible:bg-slate-800 rounded-xl transition-all shadow-sm group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
           />
           {filterQuery && (
             <button
               type="button"
               onClick={() => setFilterQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
             >
               <X className="h-3 w-3" />
             </button>
@@ -126,18 +126,18 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
         </div>
 
         {/* Mode Toggle */}
-        <div className="flex p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 relative isolate">
+        <div className="flex p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-xl border border-slate-200/50 dark:border-slate-800/50 relative isolate">
           <button
             type="button"
             onClick={() => setMode("project")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
               mode === "project"
-                ? "bg-white text-sky-600 shadow-sm ring-1 ring-black/5"
-                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
             )}
           >
-            <FolderTree className={cn("h-3.5 w-3.5", mode === "project" ? "text-sky-500" : "text-slate-400")} />
+            <FolderTree className={cn("h-3.5 w-3.5", mode === "project" ? "text-sky-500" : "text-slate-400 dark:text-slate-500")} />
             Project
           </button>
           <button
@@ -146,11 +146,11 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
               mode === "database"
-                ? "bg-white text-sky-600 shadow-sm ring-1 ring-black/5"
-                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
             )}
           >
-            <Database className={cn("h-3.5 w-3.5", mode === "database" ? "text-sky-500" : "text-slate-400")} />
+            <Database className={cn("h-3.5 w-3.5", mode === "database" ? "text-sky-500" : "text-slate-400 dark:text-slate-500")} />
             Database
           </button>
         </div>
@@ -158,7 +158,7 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
 
       {/* Breadcrumbs - Industrial style */}
       {selectedModelId && breadcrumbs.length > 0 && (
-        <div className="px-4 py-3 bg-white border-b border-slate-100 shrink-0">
+        <div className="px-4 py-3 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 overflow-hidden whitespace-nowrap mask-linear-fade">
             {breadcrumbs.map((crumb, i) => (
               <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
@@ -167,8 +167,8 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
                   className={cn(
                     "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all",
                     i === breadcrumbs.length - 1
-                      ? "bg-sky-50 text-sky-700 border border-sky-100 shadow-sm"
-                      : "hover:text-slate-800 hover:bg-slate-50"
+                      ? "bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400 border border-sky-100 dark:border-sky-900/50 shadow-sm"
+                      : "hover:text-foreground dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/50"
                   )}
                 >
                   {getBreadcrumbIcon(crumb.type)}
@@ -180,8 +180,8 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
         </div>
       )}
 
-        {/* Tree container */}
-        <div className="flex-1 relative overflow-hidden group" ref={containerRef}>
+      {/* Tree container */}
+      <div className="flex-1 relative overflow-hidden group" ref={containerRef}>
         {mode === "database" ? (
           <DatabaseTree selectedModelId={selectedModelId} className="h-full" />
         ) : isLoading ? (
@@ -223,19 +223,19 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
             )}
           </>
         )}
-        </div>
+      </div>
 
       {/* Footer - Asset Count */}
-      <div className="p-4 border-t border-slate-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0">
+      <div className="p-4 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-between shrink-0">
         <div className="flex flex-col">
-          <span className="text-[9px] font-mono text-slate-400 uppercase font-bold tracking-widest">
+          <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest">
             Total Assets
           </span>
-          <span className="text-xs font-black text-slate-700">
+          <span className="text-xs font-black text-slate-700 dark:text-slate-300">
             {flatNodes.length}
           </span>
         </div>
-        <div className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[9px] font-bold uppercase tracking-wider text-slate-500">
+        <div className="px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           {mode}
         </div>
       </div>
