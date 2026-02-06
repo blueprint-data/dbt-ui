@@ -71,12 +71,12 @@ const getThemeColors = (theme: string | undefined) => {
 const NODE_SELECTED_COLOR = "#22c55e"; // Emerald 500 for selected
 
 const MATERIALIZATION_COLORS: Record<string, string> = {
-  table: "#ffffff",
-  view: "#ffffff",
-  incremental: "#ffffff",
-  snapshot: "#ffffff",
-  seed: "#ffffff",
-  default: "#ffffff",
+  table: "#10b981", // Emerald 500
+  view: "#0ea5e9", // Sky 500
+  incremental: "#6366f1", // Indigo 500
+  snapshot: "#ec4899", // Pink 500
+  seed: "#f59e0b", // Amber 500
+  default: "#94a3b8", // Slate 400
 };
 
 // Polyfill for roundRect to support older browsers
@@ -560,6 +560,18 @@ export function LineageGraph({
       ctx.lineWidth = isSel ? 2.5 : 1;
       ctx.stroke();
 
+      // Accent Bar for Materialization Type
+      const matColor = MATERIALIZATION_COLORS[node.materialization] || MATERIALIZATION_COLORS.default;
+      ctx.fillStyle = matColor;
+      // Draw a thin colored bar on the left side
+      ctx.beginPath();
+      // Using roundRect for the left side accent
+      // We clip this region or just draw it over the left part
+      const accentWidth = 4;
+      // Manually drawing a rounded left rect
+      ctx.roundRect(x, y, accentWidth, NODE_HEIGHT, [8, 0, 0, 8]);
+      ctx.fill();
+
       // LOD Level 3: Render text only if identifiable
       if (scale > 0.25 || isSel) {
         ctx.fillStyle = isSel ? "#0a1f2a" : colors.TEXT_COLOR;
@@ -576,7 +588,8 @@ export function LineageGraph({
           }
           displayText += '...';
         }
-        ctx.fillText(displayText, x + NODE_WIDTH / 2, y + NODE_HEIGHT / 2);
+        // Offset text slightly to right due to accent bar
+        ctx.fillText(displayText, x + NODE_WIDTH / 2 + 2, y + NODE_HEIGHT / 2);
       }
     }
 
