@@ -1,25 +1,69 @@
 # dbt-ui
 
 [![CI](https://github.com/blueprint-data/dbt-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/blueprint-data/dbt-ui/actions/workflows/ci.yml)
-[![NPM Version](https://img.shields.io/npm/v/dbt-ui.svg)](https://www.npmjs.com/package/dbt-ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, full-stack solution for visualizing and exploring dbt projects. This monorepo contains both the data processing backend and a beautiful web interface for dbt documentation.
 
-## 🏗️ Project Structure
+> **Note:** The npm package is not yet published. See [Run Locally](#-run-locally-development) below for setup instructions.
 
-This is a **monorepo** organized with npm workspaces:
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        dbt-ui Monorepo                              │
+│                     (pnpm / npm workspaces)                         │
+│                                                                     │
+│  ┌──────────────┐   ┌──────────────────┐   ┌────────────────────┐  │
+│  │ @dbt-ui/core │──▶│   dbt-ui CLI      │   │ dbt-docs-redesign  │  │
+│  │              │   │                   │   │   (Next.js 16)     │  │
+│  │ • manifest   │   │ • generate cmd    │   │                    │  │
+│  │   parser     │   │ • serve cmd ──────│──▶│ • API routes       │  │
+│  │ • SQLite     │   │                   │   │ • React 19 UI      │  │
+│  │   builder    │   └──────────────────┘   │ • Lineage graph    │  │
+│  │ • sql.js     │                           │ • Tree navigation  │  │
+│  │   (WASM)     │──────────────────────────▶│ • Search           │  │
+│  └──────────────┘                           └────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+
+  manifest.json ──▶ SQLite DB ──▶ API Routes ──▶ Browser UI
+```
+
+### Project Structure
 
 ```
 dbt-ui/
 ├── apps/
 │   └── web/
-│       └── dbt-docs-redesign/    # Next.js web application
+│       └── dbt-docs-redesign/       # Next.js 16 web application
+│           ├── app/                  # Pages + API routes
+│           │   ├── api/              # 7 REST endpoints
+│           │   ├── model/[id]/       # Model detail page
+│           │   └── page.tsx          # Explorer dashboard
+│           ├── components/           # 17 React components + UI primitives
+│           ├── hooks/                # 3 custom hooks
+│           └── lib/                  # API client, types, utilities
 ├── packages/
-│   ├── core/                      # Core data processing logic
-│   └── cli/                       # Command-line interface
-├── package.json                   # Root workspace configuration
-└── tsconfig.json                  # Shared TypeScript config
+│   ├── core/                         # Data processing library
+│   │   └── src/
+│   │       ├── sqlite.ts             # WASM SQLite wrapper
+│   │       ├── build.ts              # Manifest → SQLite builder
+│   │       └── manifest.ts           # dbt type definitions
+│   └── cli/                          # Command-line interface
+│       └── src/
+│           └── index.ts              # generate + serve commands
+├── .github/workflows/                # CI/CD (3 workflows)
+├── package.json                      # Root workspace config
+└── tsconfig.json                     # Shared TypeScript config
+```
+
+### Data Flow
+
+```
+1. dbt docs generate          → manifest.json
+2. @dbt-ui/core build          → dbt_ui.sqlite (4 tables)
+3. Next.js API routes          → Read SQLite via sql.js (WASM)
+4. React components            → Render in browser
 ```
 
 ## 📦 Packages
@@ -28,129 +72,229 @@ dbt-ui/
 Core library for processing dbt manifest files and building a SQLite database for fast queries.
 
 **Features:**
-- Parse dbt manifest.json files
-- Build optimized SQLite database
+- Parse dbt `manifest.json` files
+- Build optimized SQLite database via **sql.js** (WebAssembly)
 - Full-text search capabilities
-- Model relationship mapping
+- Model relationship mapping (DAG edges)
 
-### `@dbt-ui/cli`
-Command-line tool to generate the SQLite database from your dbt project.
+**Database Schema** (4 tables):
 
-**Usage:**
-```bash
-dbt-ui generate [--manifest <path>] [--out <path>] [--skip-dbt]
-```
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `model` | All dbt models/seeds/snapshots | `unique_id`, `name`, `resource_type`, `schema_name`, `materialized`, `tags_json` |
+| `column_def` | Column definitions per model | `model_unique_id`, `name`, `description` |
+| `edge` | DAG dependencies between models | `src_unique_id`, `dst_unique_id`, `edge_type` |
+| `search_docs` | Search index for models + columns | `doc_type`, `name`, `description`, `tags` |
 
-**Options:**
+### `dbt-ui` (CLI)
+Command-line tool to generate the SQLite database and serve the web app.
+
+**Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `dbt-ui generate` | Run `dbt docs generate` + build SQLite DB from manifest |
+| `dbt-ui serve` | Launch the Next.js web app pointing at a SQLite DB |
+
+**Generate options:**
 - `--manifest <path>`: Path to manifest.json (default: `target/manifest.json`)
 - `--out <path>`: Output SQLite file path (default: `target/dbt_ui.sqlite`)
 - `--skip-dbt`: Skip running `dbt docs generate`
 
+**Serve options:**
+- `--db <path>`: Path to SQLite database (default: `target/dbt_ui.sqlite`)
+- `--port <port>`: Port number (default: `3000`)
+
 ### Web Application
-A modern Next.js application providing an intuitive interface for exploring dbt models.
+A modern Next.js 16 application providing an intuitive interface for exploring dbt models.
 
 **Features:**
-- 🔍 Advanced search and filtering
-- 📊 Interactive lineage visualization
-- 🌳 Tree-based project navigation
-- 💻 Syntax-highlighted code viewer
+- 🔍 Advanced search and filtering (global command palette)
+- 📊 Interactive lineage visualization (canvas-based DAG with zoom/pan)
+- 🌳 Tree-based project navigation (project + database modes, virtualized)
+- 💻 Syntax-highlighted SQL code viewer (raw + compiled)
 - 📋 Column-level documentation
-- 🎨 Beautiful dark/light themes
-- 📱 Responsive design
+- 🎨 Beautiful dark/light themes (system-aware)
+- 📱 Responsive design with mobile sidebar
 
-See [`apps/web/dbt-docs-redesign/README.md`](apps/web/dbt-docs-redesign/README.md) for more details.
+**Key Components:**
+
+| Component | Purpose |
+|-----------|--------|
+| `lineage-graph.tsx` | Canvas-based DAG visualization with BFS traversal |
+| `tree-sidebar.tsx` | Project/database tree navigation |
+| `search-bar.tsx` | Global search with command palette (cmdk) |
+| `models-table.tsx` | Sortable, paginated data assets table |
+| `code-viewer.tsx` | Syntax-highlighted SQL viewer |
+| `columns-table.tsx` | Column definitions display |
+| `filters-sidebar.tsx` | Tag/schema/package/materialization filters |
+| `app-shell.tsx` | Main layout shell (header + sidebar + content + floating graph button) |
+
+**API Routes** (7 endpoints):
+
+| Endpoint | Purpose |
+|----------|--------|
+| `GET /api/models` | List models with pagination and facets |
+| `GET /api/models/[id]` | Model detail with columns and code |
+| `GET /api/search` | Text search across models and columns |
+| `GET /api/lineage/[id]` | BFS graph traversal for lineage DAG |
+| `GET /api/lineage/all` | Full project lineage graph |
+| `GET /api/nav/database` | Database/schema tree navigation data |
+| `GET /api/db` | Database health check |
 
 ## 🚀 Quick Start
+
+Since the npm package is not yet published, you run everything from the **cloned repo** and point it at your local dbt project.
 
 ### Prerequisites
 
 - **Node.js** 18.x or higher
-- **npm** or **pnpm**
-- **dbt** project with generated manifest.json
+- **pnpm** (recommended) or **npm**
+- A **dbt project** on your machine (e.g. `~/projects/my-dbt-project`)
 
-### Installation
+### Step 1: Clone and Install dbt-ui
 
-1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/blueprint-data/dbt-ui.git
 cd dbt-ui
+pnpm install
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+### Step 2: Setup WASM
 
-This will install dependencies for all packages in the workspace.
-
-### Generate Database
-
-Navigate to your dbt project and run:
+Copy the sql.js WebAssembly file to the public directory:
 
 ```bash
-# Option 1: Run dbt docs generate and build database
-npx @dbt-ui/cli generate
-
-# Option 2: Use existing manifest
-npx @dbt-ui/cli generate --manifest ./target/manifest.json --out ./target/dbt_ui.sqlite
-
-# Option 3: Skip dbt command (use existing manifest only)
-npx @dbt-ui/cli generate --skip-dbt
+pnpm run setup:wasm
 ```
 
-### Run Web Application
+### Step 3: Link to Your dbt Project
 
-1. Navigate to the web app:
-```bash
-cd apps/web/dbt-docs-redesign
-```
+dbt-ui needs the `manifest.json` file that dbt generates. Here's how to get it from your local dbt project:
 
-2. Install dependencies (if not already installed):
-```bash
-npm install
-```
+#### Option A: You already have a manifest.json
 
-3. Start the development server:
-```bash
-npm run dev
-```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## 🛠️ Development
-
-### Workspace Commands
-
-From the root directory:
+If you've run `dbt docs generate` or `dbt compile` before, you already have the file at `<your-dbt-project>/target/manifest.json`. Just note the **absolute path**:
 
 ```bash
-# Install all dependencies
-npm install
-
-# Build all packages
-npm run build -ws
-
-# Run tests (if available)
-npm test -ws
+# Example: check it exists
+ls ~/projects/my-dbt-project/target/manifest.json
 ```
 
-### Package-specific Development
+#### Option B: Generate the manifest from your dbt project
 
-Work on individual packages:
+Go to your dbt project and generate it:
 
 ```bash
-# Work on core package
-cd packages/core
-npm run dev
-
-# Work on CLI
-cd packages/cli
-npm run dev
-
-# Work on web app
-cd apps/web/dbt-docs-redesign
-npm run dev
+cd ~/projects/my-dbt-project
+dbt docs generate
+# This creates target/manifest.json
 ```
+
+Then note the absolute path:
+```bash
+# Example
+echo $(pwd)/target/manifest.json
+# → /Users/you/projects/my-dbt-project/target/manifest.json
+```
+
+### Step 4: Build the SQLite Database
+
+Go back to the dbt-ui repo and build the database from your dbt manifest:
+
+```bash
+cd ~/path/to/dbt-ui
+
+# Replace the path with YOUR manifest.json location
+npx tsx packages/cli/src/index.ts generate \
+  --manifest /Users/you/projects/my-dbt-project/target/manifest.json \
+  --out target/dbt_ui.sqlite \
+  --skip-dbt
+```
+
+You should see output like:
+```
+Building SQLite at target/dbt_ui.sqlite from /Users/you/projects/my-dbt-project/target/manifest.json...
+SUCCESS: Database generated.
+- Models: 42
+- Columns: 318
+- Edges: 67
+- Search entries: 360
+```
+
+### Step 5: Run the Web App
+
+Set the database path and start the dev server:
+
+```bash
+# Inline (one-liner)
+DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite pnpm run dev
+```
+
+Or create a `.env.local` file in `apps/web/dbt-docs-redesign/` so you don't have to type it every time:
+
+```bash
+echo "DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite" > apps/web/dbt-docs-redesign/.env.local
+pnpm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser 🎉
+
+### Complete Example (end to end)
+
+```bash
+# 1. Clone dbt-ui
+git clone https://github.com/blueprint-data/dbt-ui.git
+cd dbt-ui
+pnpm install
+pnpm run setup:wasm
+
+# 2. Generate the manifest in your dbt project
+cd ~/projects/my-dbt-project
+dbt docs generate
+
+# 3. Build the database
+cd ~/path/to/dbt-ui
+npx tsx packages/cli/src/index.ts generate \
+  --manifest ~/projects/my-dbt-project/target/manifest.json \
+  --out target/dbt_ui.sqlite \
+  --skip-dbt
+
+# 4. Run the web app
+echo "DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite" > apps/web/dbt-docs-redesign/.env.local
+pnpm run dev
+
+# 5. Open http://localhost:3000
+```
+
+### Switching Between dbt Projects
+
+To visualize a different dbt project, just rebuild the database with the new manifest:
+
+```bash
+# Point to a different project's manifest
+npx tsx packages/cli/src/index.ts generate \
+  --manifest ~/projects/other-dbt-project/target/manifest.json \
+  --out target/dbt_ui.sqlite \
+  --skip-dbt
+
+# Restart the dev server (the DB path stays the same)
+pnpm run dev
+```
+
+> **Tip:** The web app auto-detects when the database file changes, so in most cases you just need to refresh the browser after regenerating.
+
+### Quick Reference
+
+| Task | Command |
+|------|---------|
+| Install all deps | `pnpm install` |
+| Setup WASM file | `pnpm run setup:wasm` |
+| Generate DB | `npx tsx packages/cli/src/index.ts generate --manifest <path> --out target/dbt_ui.sqlite --skip-dbt` |
+| Run dev server | `pnpm run dev` |
+| Build production | `pnpm run build` |
+| Build standalone | `pnpm run build:standalone` |
+| Clean cache | `rm -rf apps/web/dbt-docs-redesign/.next` |
 
 ## 🧪 Tech Stack
 
@@ -315,25 +459,25 @@ For questions or issues:
 - Open an issue on GitHub
 - Contact the maintainers
 
-## 🚀 Next Steps (Roadmap)
+## 🚀 Roadmap
 
 ### Phase 1: Standalone Packaging (Priority)
 The goal is to make dbt-ui a single npm package that can be installed and run anywhere.
 
-- [ ] **Configure Next.js standalone output**
-  - Add `output: 'standalone'` to `next.config.mjs`
-  - Build generates self-contained `.next/standalone` folder
+- [x] **Configure Next.js standalone output**
+  - `output: 'standalone'` in `next.config.mjs` ✅
+  - Build generates self-contained `.next/standalone` folder ✅
   
-- [ ] **Update CLI for bundled web server**
-  - Modify `@dbt-ui/cli` to serve from standalone build
-  - Add `dbt-ui serve` command that starts the embedded web server
+- [x] **Update CLI for bundled web server**
+  - `dbt-ui serve` command starts the embedded web server ✅
+  - Supports standalone + dev modes ✅
   
 - [ ] **Publish to npm**
   - Package core + cli + standalone web as single `dbt-ui` package
   - Users run: `npx dbt-ui serve --manifest ./target/manifest.json`
 
 ### Phase 2: Feature Enhancements
-- [ ] **Dark mode toggle** - Add theme switcher in header
+- [x] **Dark mode toggle** - System-aware theme with dark/light switcher ✅
 - [ ] **Export lineage as image** - Download DAG as PNG/SVG
 - [ ] **Column-level lineage** - Track data flow at column granularity
 - [ ] **Test results integration** - Show test pass/fail status per model
@@ -341,8 +485,8 @@ The goal is to make dbt-ui a single npm package that can be installed and run an
 
 ### Phase 3: Performance & Scale
 - [ ] **Test with large projects** - Validate with 500+ models
+- [x] **Virtual scrolling for tree** - react-window virtualized tree ✅
 - [ ] **Virtual scrolling for lineage** - Handle massive DAGs smoothly
-- [ ] **Lazy loading for tree** - Load children on demand
 - [ ] **Search indexing optimization** - Faster full-text search
 
 ### Phase 4: Deployment Options
