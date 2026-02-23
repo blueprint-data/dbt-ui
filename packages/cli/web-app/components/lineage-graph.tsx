@@ -21,6 +21,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -54,22 +55,28 @@ const LEVEL_GAP_X = 320;
 const NODE_GAP_Y = 80;
 const GRID_SIZE = 0;
 
-// Paleta "Professional Light Blueprint"
-const BG_COLOR = "#f8fafc"; // Slate 50 (Fondo claro limpio)
-const NODE_COLOR = "#ffffff"; // White (Nodos limpios)
+// Theme Colors
+const getThemeColors = (theme: string | undefined) => {
+  const isDark = theme === "dark";
+  return {
+    BG_COLOR: isDark ? "#0f172a" : "#f8fafc",
+    NODE_COLOR: isDark ? "#1e293b" : "#ffffff",
+    TEXT_COLOR: isDark ? "#f1f5f9" : "#0f172a",
+    EDGE_COLOR: isDark ? "#334155" : "#cbd5e1",
+    NODE_HOVER_COLOR: isDark ? "#0c4a6e" : "#e0f2fe",
+    EDGE_HIGHLIGHT_COLOR: "#0ea5e9"
+  };
+};
+
 const NODE_SELECTED_COLOR = "#22c55e"; // Emerald 500 for selected
-const NODE_HOVER_COLOR = "#e0f2fe"; // Sky 100
-const TEXT_COLOR = "#0f172a"; // Slate 900 (Texto legible)
-const EDGE_COLOR = "#cbd5e1"; // Slate 300 (Conexiones sutiles)
-const EDGE_HIGHLIGHT_COLOR = "#0ea5e9"; // Sky 500
 
 const MATERIALIZATION_COLORS: Record<string, string> = {
-  table: "#ffffff",
-  view: "#ffffff",
-  incremental: "#ffffff",
-  snapshot: "#ffffff",
-  seed: "#ffffff",
-  default: "#ffffff",
+  table: "#10b981", // Emerald 500
+  view: "#0ea5e9", // Sky 500
+  incremental: "#6366f1", // Indigo 500
+  snapshot: "#ec4899", // Pink 500
+  seed: "#f59e0b", // Amber 500
+  default: "#94a3b8", // Slate 400
 };
 
 // Polyfill for roundRect to support older browsers
@@ -206,6 +213,9 @@ export function LineageGraph({
   models,
   selectedModelId,
 }: LineageGraphProps) {
+  const { theme } = useTheme();
+  const colors = useMemo(() => getThemeColors(theme), [theme]);
+
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -498,7 +508,7 @@ export function LineageGraph({
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.bezierCurveTo(midX, startY, midX, endY, endX, endY);
-    ctx.strokeStyle = highlight ? EDGE_HIGHLIGHT_COLOR : EDGE_COLOR;
+    ctx.strokeStyle = highlight ? colors.EDGE_HIGHLIGHT_COLOR : colors.EDGE_COLOR;
     ctx.lineWidth = highlight ? 3 : 2;
     ctx.stroke();
 
@@ -520,15 +530,15 @@ export function LineageGraph({
       ctx.lineTo(endX - ARROW_SIZE * Math.cos(angle - Math.PI / 6), endY - ARROW_SIZE * Math.sin(angle - Math.PI / 6));
       ctx.lineTo(endX - ARROW_SIZE * Math.cos(angle + Math.PI / 6), endY - ARROW_SIZE * Math.sin(angle + Math.PI / 6));
       ctx.closePath();
-      ctx.fillStyle = highlight ? EDGE_HIGHLIGHT_COLOR : "rgba(255,255,255,0.2)";
+      ctx.fillStyle = highlight ? colors.EDGE_HIGHLIGHT_COLOR : "rgba(255,255,255,0.2)";
       ctx.fill();
     }
-  }, [animationFrame]);
+  }, [animationFrame, colors]);
 
   const drawNode = useCallback((ctx: CanvasRenderingContext2D, node: GraphNode, isSel: boolean, isHov: boolean, isHigh: boolean, isDim: boolean, scale: number) => {
     const x = node.x - NODE_WIDTH / 2;
     const y = node.y - NODE_HEIGHT / 2;
-    const opacity = isDim ? 0.2 : 1;
+    const opacity = isDim ? (theme === 'dark' ? 0.15 : 0.2) : 1;
     ctx.globalAlpha = opacity;
 
     // LOD Level 1: Skip shadows if not selected/hovered or if too zoomed out
@@ -541,7 +551,7 @@ export function LineageGraph({
 
     ctx.beginPath();
     ctx.roundRect(x, y, NODE_WIDTH, NODE_HEIGHT, 8);
-    ctx.fillStyle = isSel ? NODE_SELECTED_COLOR : (isHov || isHigh) ? NODE_HOVER_COLOR : "rgba(91, 165, 189, 0.85)";
+    ctx.fillStyle = isSel ? NODE_SELECTED_COLOR : (isHov || isHigh) ? colors.NODE_HOVER_COLOR : (theme === 'dark' ? "rgba(30, 41, 59, 0.9)" : "rgba(91, 165, 189, 0.85)");
     ctx.fill();
 
     // LOD Level 2: Skip border and text at very small scales
@@ -550,9 +560,21 @@ export function LineageGraph({
       ctx.lineWidth = isSel ? 2.5 : 1;
       ctx.stroke();
 
+      // Accent Bar for Materialization Type
+      const matColor = MATERIALIZATION_COLORS[node.materialization] || MATERIALIZATION_COLORS.default;
+      ctx.fillStyle = matColor;
+      // Draw a thin colored bar on the left side
+      ctx.beginPath();
+      // Using roundRect for the left side accent
+      // We clip this region or just draw it over the left part
+      const accentWidth = 4;
+      // Manually drawing a rounded left rect
+      ctx.roundRect(x, y, accentWidth, NODE_HEIGHT, [8, 0, 0, 8]);
+      ctx.fill();
+
       // LOD Level 3: Render text only if identifiable
       if (scale > 0.25 || isSel) {
-        ctx.fillStyle = isSel ? "#0a1f2a" : TEXT_COLOR;
+        ctx.fillStyle = isSel ? "#0a1f2a" : colors.TEXT_COLOR;
         ctx.font = "bold 13px 'Geist', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -566,7 +588,8 @@ export function LineageGraph({
           }
           displayText += '...';
         }
-        ctx.fillText(displayText, x + NODE_WIDTH / 2, y + NODE_HEIGHT / 2);
+        // Offset text slightly to right due to accent bar
+        ctx.fillText(displayText, x + NODE_WIDTH / 2 + 2, y + NODE_HEIGHT / 2);
       }
     }
 
@@ -586,7 +609,7 @@ export function LineageGraph({
     ctx.scale(dpr, dpr);
 
     // Fondo sólido y limpio como en la imagen
-    ctx.fillStyle = BG_COLOR;
+    ctx.fillStyle = colors.BG_COLOR;
     ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     ctx.save();
@@ -782,7 +805,7 @@ export function LineageGraph({
   }, []);
 
   const dialogClasses = cn(
-    "p-0 gap-0 overflow-hidden bg-white border-sky-200 shadow-2xl flex flex-col",
+    "p-0 gap-0 overflow-hidden bg-background dark:bg-slate-950 border-sky-200 dark:border-slate-900 shadow-2xl flex flex-col",
     isFullscreen
       ? "!top-0 !left-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-screen !rounded-none"
       : "max-w-[98vw] w-[1920px] h-[95vh]"

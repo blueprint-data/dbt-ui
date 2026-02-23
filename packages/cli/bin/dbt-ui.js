@@ -268,12 +268,23 @@ function serve() {
     console.log("------------------------------------------------------------\n");
 
     const webAppDir = path.resolve(__dirname, "../web-app");
+    const webAppNextDir = path.join(webAppDir, ".next");
+    const webAppNextModule = path.join(webAppDir, "node_modules", "next");
 
     if (!fs.existsSync(webAppDir)) {
         console.error("❌ Error: Web application not found.");
         console.error(`Looking at: ${webAppDir}`);
         console.error("\nPlease reinstall dbt-ui:");
         console.error("  npm install -g dbt-ui");
+        process.exit(1);
+    }
+
+    if (!fs.existsSync(webAppNextDir) || !fs.existsSync(webAppNextModule)) {
+        console.error("❌ Error: Web application runtime is not prepared.");
+        console.error("\nIf you're working from the repo, run:");
+        console.error("  pnpm run prepare:cli-web-app");
+        console.error("\nThen re-run:");
+        console.error("  dbt-ui serve");
         process.exit(1);
     }
 

@@ -47,8 +47,8 @@ export function MobileFilters({
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[320px] max-w-full p-0 bg-white text-slate-900 border-slate-200">
-        <SheetHeader className="px-6 py-4 border-b border-slate-200">
+      <SheetContent side="left" className="w-[320px] max-w-full p-0 bg-background text-foreground border-slate-200 dark:border-slate-800">
+        <SheetHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <SheetTitle className="flex items-center justify-between">
             Filters
             <Button
