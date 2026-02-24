@@ -116,19 +116,19 @@ export default function ExplorerPage() {
                 onFiltersChange={handleFiltersChange}
               />
               <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Asset Discovery</span>
-                <div className="text-xs text-slate-600 font-mono">
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">Asset Discovery</span>
+                <div className="text-xs text-muted-foreground font-mono">
                   {isLoading ? (
                     "UPDATING ASSETS..."
                   ) : (
                     <>
                       MATCHING:{" "}
-                      <span className="font-bold text-sky-700">
+                      <span className="font-bold text-sky-600 dark:text-sky-400">
                         {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, total)}-
                         {Math.min(currentPage * ITEMS_PER_PAGE, total)}
                       </span>{" "}
                       OF{" "}
-                      <span className="font-bold text-slate-800">
+                      <span className="font-bold text-foreground">
                         {total.toLocaleString()}
                       </span>
                     </>
@@ -153,7 +153,7 @@ export default function ExplorerPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="py-4 border-t border-slate-200">
+            <div className="py-4 border-t border-slate-200 dark:border-slate-800">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}

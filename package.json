@@ -17,7 +17,8 @@
     "dev": "cd apps/web/dbt-docs-redesign && npm run dev",
     "build": "cd apps/web/dbt-docs-redesign && npm run build",
     "build:standalone": "cd apps/web/dbt-docs-redesign && npm run build:standalone",
-    "build:npm": "./scripts/build-npm.sh"
+    "build:npm": "./scripts/build-npm.sh",
+    "prepare:cli-web-app": "./scripts/prepare-cli-web-app.sh"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

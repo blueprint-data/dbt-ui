@@ -61,7 +61,7 @@ export function Pagination({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+        className="h-8 w-8 bg-card border border-border text-muted-foreground hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground disabled:opacity-50"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
@@ -73,7 +73,7 @@ export function Pagination({
         page === "ellipsis" ? (
           <span
             key={`ellipsis-${i}`}
-            className="px-2 text-slate-400 font-bold"
+            className="px-2 text-muted-foreground font-bold"
           >
             ...
           </span>
@@ -86,7 +86,7 @@ export function Pagination({
               "h-8 w-8 font-mono text-xs font-bold transition-all",
               currentPage === page
                 ? "bg-sky-500 text-white hover:bg-sky-600 shadow-md shadow-sky-500/30"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200"
+                : "bg-card border border-border text-muted-foreground hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:text-sky-600 dark:hover:text-sky-400 hover:border-sky-200"
             )}
             onClick={() => onPageChange(page)}
           >
@@ -98,7 +98,7 @@ export function Pagination({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+        className="h-8 w-8 bg-card border border-border text-muted-foreground hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground disabled:opacity-50"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
       >

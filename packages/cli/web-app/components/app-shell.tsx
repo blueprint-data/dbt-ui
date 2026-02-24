@@ -47,13 +47,13 @@ export function AppShell({
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden mr-2 hover:bg-sky-100"
+              className="lg:hidden mr-2 hover:bg-sky-100 dark:hover:bg-slate-800"
               aria-label="Open navigation"
             >
-              <Menu className="h-5 w-5 text-slate-700" />
+              <Menu className="h-5 w-5 text-foreground" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[320px] bg-white">
+          <SheetContent side="left" className="p-0 w-[320px] bg-background border-r dark:border-slate-800">
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <SheetDescription className="sr-only">
               Browse your dbt project models and databases

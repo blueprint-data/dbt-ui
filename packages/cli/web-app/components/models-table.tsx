@@ -12,10 +12,10 @@ interface ModelsTableProps {
 }
 
 const materializationColors: Record<string, string> = {
-  table: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_-2px_rgba(16,185,129,0.1)]",
-  view: "bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_10px_-2px_rgba(59,130,246,0.1)]",
-  incremental: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20 shadow-[0_0_10px_-2px_rgba(99,102,241,0.1)]",
-  ephemeral: "bg-slate-500/10 text-slate-500 border-slate-500/20",
+  table: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-2px_rgba(16,185,129,0.1)]",
+  view: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 shadow-[0_0_10px_-2px_rgba(59,130,246,0.1)]",
+  incremental: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 shadow-[0_0_10px_-2px_rgba(99,102,241,0.1)]",
+  ephemeral: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
 };
 
 export function ModelsTable({ models, isLoading }: ModelsTableProps) {
@@ -26,7 +26,7 @@ export function ModelsTable({ models, isLoading }: ModelsTableProps) {
   if (models.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="rounded-2xl glass p-5 mb-5 shadow-inner">
+        <div className="rounded-2xl glass-muted p-5 mb-5 shadow-inner">
           <svg
             className="h-10 w-10 text-primary/40"
             fill="none"
@@ -53,20 +53,20 @@ export function ModelsTable({ models, isLoading }: ModelsTableProps) {
     <div className="w-full overflow-x-auto no-scrollbar">
       <table className="w-full border-collapse min-w-[600px] md:min-w-0">
         <thead>
-          <tr className="bg-muted/50 border-b border-border/60">
-            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+          <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200/60 dark:border-slate-800/60">
+            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em]">
               Asset Name
             </th>
-            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] hidden md:table-cell">
+            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em] hidden md:table-cell">
               Schema
             </th>
-            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] hidden lg:table-cell">
+            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em] hidden lg:table-cell">
               Package
             </th>
-            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em]">
               Mat.
             </th>
-            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] hidden xl:table-cell">
+            <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-[0.2em] hidden xl:table-cell">
               Description
             </th>
           </tr>
@@ -75,24 +75,24 @@ export function ModelsTable({ models, isLoading }: ModelsTableProps) {
           {models.map((model) => (
             <tr
               key={model.unique_id}
-              className="group table-row-hover hover:bg-sky-50 transition-colors"
+              className="group table-row-hover hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
             >
               <td className="px-6 py-4">
                 <Link
                   href={`/model/${encodeURIComponent(model.unique_id)}`}
-                  className="font-bold text-sm text-slate-900 hover:text-sky-600 transition-colors flex items-center gap-2"
+                  className="font-bold text-sm text-foreground hover:text-sky-600 dark:hover:text-sky-400 transition-colors flex items-center gap-2"
                 >
                   <div className="h-1.5 w-1.5 rounded-full bg-sky-500/40 group-hover:bg-sky-500 transition-colors shrink-0" />
                   {model.name}
                 </Link>
               </td>
               <td className="px-6 py-4 hidden md:table-cell">
-                <span className="text-xs font-mono text-slate-600 group-hover:text-slate-900 transition-colors">
+                <span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">
                   {model.schema}
                 </span>
               </td>
               <td className="px-6 py-4 hidden lg:table-cell">
-                <span className="text-xs font-mono text-slate-600 group-hover:text-slate-900 transition-colors">
+                <span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">
                   {model.package_name}
                 </span>
               </td>
@@ -108,7 +108,7 @@ export function ModelsTable({ models, isLoading }: ModelsTableProps) {
                 </Badge>
               </td>
               <td className="px-6 py-4 hidden xl:table-cell max-w-xs">
-                <span className="text-xs text-slate-500 line-clamp-1 group-hover:text-slate-700 transition-colors">
+                <span className="text-xs text-muted-foreground line-clamp-1 group-hover:text-foreground transition-colors">
                   {model.description || "—"}
                 </span>
               </td>

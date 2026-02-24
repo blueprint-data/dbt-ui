@@ -134,10 +134,10 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
               "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
               mode === "project"
                 ? "bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
             )}
           >
-            <FolderTree className={cn("h-3.5 w-3.5", mode === "project" ? "text-sky-500" : "text-slate-400")} />
+            <FolderTree className={cn("h-3.5 w-3.5", mode === "project" ? "text-sky-500" : "text-slate-400 dark:text-slate-500")} />
             Project
           </button>
           <button
@@ -147,10 +147,10 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
               "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
               mode === "database"
                 ? "bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
             )}
           >
-            <Database className={cn("h-3.5 w-3.5", mode === "database" ? "text-sky-500" : "text-slate-400")} />
+            <Database className={cn("h-3.5 w-3.5", mode === "database" ? "text-sky-500" : "text-slate-400 dark:text-slate-500")} />
             Database
           </button>
         </div>
@@ -168,7 +168,7 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
                     "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all",
                     i === breadcrumbs.length - 1
                       ? "bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400 border border-sky-100 dark:border-sky-900/50 shadow-sm"
-                      : "hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                      : "hover:text-foreground dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/50"
                   )}
                 >
                   {getBreadcrumbIcon(crumb.type)}

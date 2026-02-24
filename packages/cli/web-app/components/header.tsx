@@ -24,7 +24,7 @@ export function Header({ totalModels, children }: HeaderProps) {
             className="h-10 w-auto"
           />
           <div className="flex flex-col">
-            <span className="hidden sm:inline-block text-base leading-tight text-slate-900 dark:text-slate-100">dbt Docs</span>
+            <span className="hidden sm:inline-block text-base leading-tight text-foreground">dbt Docs</span>
             <span className="hidden sm:inline-block text-[10px] uppercase tracking-widest text-sky-600 dark:text-sky-400 font-mono font-bold">Redesign v1</span>
           </div>
         </Link>
@@ -35,17 +35,17 @@ export function Header({ totalModels, children }: HeaderProps) {
           <ThemeToggle />
           <div className="h-8 w-[1px] bg-sky-200 dark:bg-slate-800" />
           <div className="flex flex-col items-end">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none mb-1">system status</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground leading-none mb-1">system status</span>
             <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-[pulse_2s_infinite] shadow-lg shadow-emerald-500/50" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 font-mono">Operations Online</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-foreground font-mono">Operations Online</span>
             </div>
           </div>
-          <div className="h-8 w-[1px] bg-sky-200" />
+          <div className="h-8 w-[1px] bg-sky-200 dark:bg-slate-800" />
           {totalModels !== undefined && (
             <div className="flex flex-col items-end">
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none mb-1">inventory size</span>
-              <span className="text-[11px] font-black font-mono text-sky-600 uppercase tracking-widest">{totalModels.toLocaleString()} ASSETS</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground leading-none mb-1">inventory size</span>
+              <span className="text-[11px] font-black font-mono text-sky-600 dark:text-sky-400 uppercase tracking-widest">{totalModels.toLocaleString()} ASSETS</span>
             </div>
           )}
         </div>
