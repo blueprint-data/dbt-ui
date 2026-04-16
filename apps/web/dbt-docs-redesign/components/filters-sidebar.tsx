@@ -60,18 +60,16 @@ export function FiltersSidebar({
 
   return (
     <aside className={cn("w-full", className)}>
-      <div className="space-y-4 p-4 bg-card border border-border rounded-2xl shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-sm text-foreground uppercase tracking-widest opacity-80">Filters</h2>
+      <div className="space-y-4 p-5 bp-card shadow-xl ring-1 ring-black/5 dark:ring-white/5">
+        <div className="flex items-center justify-between border-b border-[var(--semantic-border-subtle)] pb-3">
+          <h2 className="font-bold text-[11px] text-[var(--semantic-text-strong)] uppercase tracking-widest opacity-80">Filters</h2>
           {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={clearAllFilters}
-              className="h-7 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="text-[10px] font-bold uppercase tracking-wider text-[var(--semantic-text-body)] hover:text-[var(--brand-primary-500)] transition-colors"
             >
               Clear all
-            </Button>
+            </button>
           )}
         </div>
 
@@ -86,10 +84,10 @@ export function FiltersSidebar({
                   setResourceType(filters.resourceType === type ? undefined : type)
                 }
                 className={cn(
-                  "w-full flex items-center justify-between px-3 py-1.5 rounded text-sm transition-colors border",
+                  "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all shadow-none outline-none mb-1 border border-transparent",
                   filters.resourceType === type
-                    ? "bg-sky-100 dark:bg-sky-900/30 text-sky-900 dark:text-sky-400 border-sky-200 dark:border-sky-800"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                    ? "bg-[rgba(81,81,243,0.1)] text-[var(--brand-primary-500)] font-bold ring-1 ring-[var(--brand-primary-500)]/30 shadow-sm"
+                    : "hover:bg-[var(--semantic-surface-muted)] text-[var(--semantic-text-body)] hover:text-[var(--semantic-text-strong)]"
                 )}
               >
                 <span className="capitalize">{type}</span>
@@ -291,16 +289,18 @@ function FilterCheckbox({
       type="button"
       onClick={onChange}
       className={cn(
-        "w-full flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors text-left border",
-        checked ? "bg-sky-100 dark:bg-sky-900/40 text-sky-900 dark:text-sky-400 border-sky-200 dark:border-sky-700" : "hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground dark:text-slate-400 border-slate-200 dark:border-slate-800"
+        "w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] transition-all text-left outline-none mb-0.5 border border-transparent shadow-none",
+        checked 
+          ? "bg-[rgba(81,81,243,0.05)] text-[var(--brand-primary-500)] font-medium" 
+          : "hover:bg-[var(--semantic-surface-muted)] text-[var(--semantic-text-body)] hover:text-[var(--semantic-text-strong)]"
       )}
     >
       <div
         className={cn(
-          "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+          "h-3.5 w-3.5 rounded-[4px] border flex items-center justify-center transition-all shrink-0 shadow-sm",
           checked
-            ? "bg-sky-500 border-sky-500 text-white"
-            : "border-slate-300 dark:border-slate-700"
+            ? "bg-[var(--brand-primary-500)] border-[var(--brand-primary-500)] text-white shadow-md shadow-[var(--brand-primary-500)]/20"
+            : "border-[var(--semantic-border-subtle)] bg-[var(--semantic-surface-default)]"
         )}
       >
         {checked && (

@@ -139,7 +139,10 @@ function CodeBlock({ code, language, isFullscreen }: { code?: string, language: 
       </div>
 
       {/* Code Area */}
-      <div className="flex-1 overflow-auto custom-scrollbar relative z-10 p-1">
+      <div 
+        className="flex-1 overflow-auto custom-scrollbar relative z-10 p-1 dark"
+        style={{ colorScheme: 'dark' }}
+      >
         <pre className="p-4 pt-6 min-w-full inline-block">
           <code className="block min-w-full">
             {lines.map((line, i) => (

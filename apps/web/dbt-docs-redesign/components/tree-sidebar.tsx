@@ -99,58 +99,62 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
   return (
     <aside
       className={cn(
-        "w-[340px] z-20 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full bg-gradient-to-b from-white via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 overflow-hidden",
+        "w-[340px] z-20 border-r flex flex-col h-full overflow-hidden",
+        "bg-[var(--semantic-surface-muted)] border-[var(--semantic-border-subtle)]",
         className
       )}
     >
       {/* Search/Filter - Top Priority */}
-      <div className="p-4 space-y-4 shrink-0">
+      <div className="p-5 space-y-5 shrink-0 border-b border-[var(--semantic-border-subtle)] bg-[var(--semantic-surface-default)] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
         <div className="relative group">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--semantic-text-body)] opacity-70 group-focus-within:opacity-100 transition-opacity" />
           <Input
             type="text"
             placeholder="Filter models..."
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            className="pl-10 pr-10 h-10 bg-slate-50 dark:bg-slate-900 border-transparent dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500/10 focus-visible:bg-white dark:focus-visible:bg-slate-800 rounded-xl transition-all shadow-sm group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+            className="pl-10 pr-10 shadow-sm font-medium"
           />
           {filterQuery && (
             <button
               type="button"
               onClick={() => setFilterQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-[var(--semantic-text-body)] hover:bg-[var(--semantic-surface-muted)] transition-colors"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
         {/* Mode Toggle */}
-        <div className="flex p-1 bg-slate-100/80 dark:bg-slate-900/80 rounded-xl border border-slate-200/50 dark:border-slate-800/50 relative isolate">
+        <div 
+          className="flex p-1 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]"
+          style={{ background: 'var(--semantic-surface-muted)' }}
+        >
           <button
             type="button"
             onClick={() => setMode("project")}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
+              "flex-1 flex items-center justify-center gap-2 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
               mode === "project"
-                ? "bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                ? "bg-[var(--semantic-surface-default)] text-[var(--brand-primary-500)] shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+                : "text-[var(--semantic-text-body)] hover:text-[var(--semantic-text-strong)] opacity-70 hover:opacity-100"
             )}
           >
-            <FolderTree className={cn("h-3.5 w-3.5", mode === "project" ? "text-sky-500" : "text-slate-400 dark:text-slate-500")} />
+            <FolderTree className={cn("h-4 w-4", mode === "project" ? "text-[var(--brand-primary-500)]" : "")} />
             Project
           </button>
           <button
             type="button"
             onClick={() => setMode("database")}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
+              "flex-1 flex items-center justify-center gap-2 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 z-10",
               mode === "database"
-                ? "bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                ? "bg-[var(--semantic-surface-default)] text-[var(--brand-primary-500)] shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+                : "text-[var(--semantic-text-body)] hover:text-[var(--semantic-text-strong)] opacity-70 hover:opacity-100"
             )}
           >
-            <Database className={cn("h-3.5 w-3.5", mode === "database" ? "text-sky-500" : "text-slate-400 dark:text-slate-500")} />
+            <Database className={cn("h-4 w-4", mode === "database" ? "text-[var(--brand-primary-500)]" : "")} />
             Database
           </button>
         </div>
@@ -158,17 +162,17 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
 
       {/* Breadcrumbs - Industrial style */}
       {selectedModelId && breadcrumbs.length > 0 && (
-        <div className="px-4 py-3 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 overflow-hidden whitespace-nowrap mask-linear-fade">
+        <div className="px-4 py-3 border-b shrink-0" style={{ background: 'var(--semantic-surface-default)', borderColor: 'var(--semantic-border-subtle)' }}>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[var(--semantic-text-body)] overflow-hidden whitespace-nowrap mask-linear-fade">
             {breadcrumbs.map((crumb, i) => (
               <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
-                {i > 0 && <span className="text-slate-300">/</span>}
+                {i > 0 && <span className="opacity-40">/</span>}
                 <span
                   className={cn(
                     "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all",
                     i === breadcrumbs.length - 1
-                      ? "bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400 border border-sky-100 dark:border-sky-900/50 shadow-sm"
-                      : "hover:text-foreground dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                      ? "text-[var(--brand-primary-500)] shadow-sm bg-[var(--semantic-surface-muted)] border border-[var(--semantic-border-subtle)]"
+                      : "hover:text-[var(--semantic-text-strong)] hover:bg-[var(--semantic-surface-muted)]"
                   )}
                 >
                   {getBreadcrumbIcon(crumb.type)}
@@ -226,16 +230,19 @@ export function TreeSidebar({ selectedModelId, className }: TreeSidebarProps) {
       </div>
 
       {/* Footer - Asset Count */}
-      <div className="p-4 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-between shrink-0">
+      <div 
+        className="p-4 border-t flex items-center justify-between shrink-0"
+        style={{ background: 'var(--semantic-surface-default)', borderColor: 'var(--semantic-border-subtle)' }}
+      >
         <div className="flex flex-col">
-          <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest">
+          <span className="text-[10px] font-bold text-[var(--semantic-text-body)] uppercase tracking-widest opacity-80">
             Total Assets
           </span>
-          <span className="text-xs font-black text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-black text-[var(--semantic-text-strong)] leading-tight">
             {flatNodes.length}
           </span>
         </div>
-        <div className="px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div className="px-3 py-1.5 rounded bg-[var(--semantic-surface-muted)] border border-[var(--semantic-border-subtle)] text-[10px] font-bold uppercase tracking-wider text-[var(--semantic-text-body)] shadow-sm">
           {mode}
         </div>
       </div>

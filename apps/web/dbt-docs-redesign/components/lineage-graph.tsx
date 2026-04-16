@@ -647,14 +647,17 @@ function LineageGraphInner({
       )}
     >
       {/* ── Header ────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-3 md:px-4 py-2 bg-slate-900/95 border-b border-slate-800 z-10 backdrop-blur-sm">
+      <div 
+        className="flex items-center justify-between px-3 md:px-4 py-2 border-b z-10 backdrop-blur-sm shadow-sm"
+        style={{ background: 'var(--semantic-surface-default)', borderColor: 'var(--semantic-border-subtle)' }}
+      >
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
-            <h2 className="text-[11px] font-black uppercase tracking-[0.12em] flex items-center gap-1 text-white">
-              <GitBranch className="h-3.5 w-3.5 text-sky-400" />
+            <h2 className="text-[11px] font-black uppercase tracking-[0.12em] flex items-center gap-1 text-[var(--semantic-text-strong)]">
+              <GitBranch className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
               <span className="hidden sm:inline">Lineage</span>
             </h2>
-            <span className="hidden sm:block text-[9px] font-mono text-slate-500 uppercase tracking-wide leading-tight">
+            <span className="hidden sm:block text-[9px] font-mono text-muted-foreground uppercase tracking-wide leading-tight">
               {nodes.length} nodes
             </span>
           </div>
@@ -667,8 +670,8 @@ function LineageGraphInner({
               variant="ghost"
               size="icon"
               className={cn(
-                "h-6 w-6 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400",
-                isFullscreen && "bg-sky-500/20 text-sky-400"
+                "h-6 w-6 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground",
+                isFullscreen && "bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400"
               )}
               onClick={toggleFullscreen}
               title="Fullscreen"
@@ -678,7 +681,7 @@ function LineageGraphInner({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+              className="h-6 w-6 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
               onClick={() => fitView({ padding: 0.12, duration: 300 })}
               title="Fit View"
             >
@@ -686,36 +689,36 @@ function LineageGraphInner({
             </Button>
           </div>
 
-          <div className="hidden md:block h-4 w-px bg-slate-700/50" />
+          <div className="hidden md:block h-4 w-px bg-border" />
 
           {/* Depth Controls — only when viewing single-model lineage */}
           {selectedModelId && (
             <>
-              <div className="hidden md:flex items-center gap-0.5 bg-slate-800/60 rounded px-1 py-0.5 border border-slate-700">
-                <span className="text-[9px] text-slate-400">D</span>
+              <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded px-1 py-0.5 border border-border">
+                <span className="text-[9px] text-muted-foreground">D</span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-5 w-5 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  className="h-5 w-5 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
                   onClick={() => adjustDepth(-1)}
                   disabled={graphDepth <= 1}
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
-                <span className="text-[10px] font-mono font-bold text-slate-200 min-w-[14px] text-center">
+                <span className="text-[10px] font-mono font-bold text-foreground min-w-[14px] text-center">
                   {graphDepth}
                 </span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-5 w-5 text-slate-400 hover:bg-sky-500/20 hover:text-sky-400"
+                  className="h-5 w-5 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
                   onClick={() => adjustDepth(1)}
                   disabled={graphDepth >= 4}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
               </div>
-              <div className="hidden md:block h-4 w-px bg-slate-700/50" />
+              <div className="hidden md:block h-4 w-px bg-border" />
             </>
           )}
 
@@ -723,7 +726,7 @@ function LineageGraphInner({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10"
+            className="h-7 w-7 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
             onClick={() => onOpenChange(false)}
           >
             <X className="h-4 w-4" />
@@ -737,28 +740,28 @@ function LineageGraphInner({
         <button
           type="button"
           onClick={() => setSearchPanelOpen((o) => !o)}
-          className="absolute top-3 right-3 md:top-4 md:right-4 z-30 h-9 w-9 bg-slate-900/90 border border-slate-700 rounded-lg flex items-center justify-center hover:bg-sky-500/20 hover:border-sky-500/40 transition-all"
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-30 h-9 w-9 bg-card/90 border border-border rounded-lg flex items-center justify-center hover:bg-sky-50 dark:hover:bg-sky-500/20 hover:border-sky-200 dark:hover:border-sky-500/40 hover:text-sky-600 dark:hover:text-sky-400 transition-all shadow-sm backdrop-blur-md"
           title="Search nodes (/)"
         >
-          <Search className="h-4 w-4 text-slate-300" />
+          <Search className="h-4 w-4 text-foreground" />
         </button>
 
         {/* Search Panel */}
         {searchPanelOpen && (
-          <div className="absolute bottom-4 right-4 z-30 w-64 max-h-[400px] bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl backdrop-blur-xl flex flex-col">
-            <div className="p-3 border-b border-slate-800">
+          <div className="absolute bottom-4 right-4 z-30 w-64 max-h-[400px] bp-card shadow-2xl backdrop-blur-xl flex flex-col border-[var(--semantic-border-subtle)]">
+            <div className="p-3 border-b border-[var(--semantic-border-subtle)]">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--semantic-text-body)]" />
                 <Input
                   placeholder="Search node..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-8 bg-slate-800/60 border-slate-700 rounded-md text-xs font-mono text-white placeholder:text-slate-500"
+                  className="bp-input pl-9 h-8 w-full text-xs font-mono"
                   autoFocus
                 />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
               {searchResults.length > 0 ? (
                 searchResults.map((m) => (
                   <button
@@ -768,18 +771,18 @@ function LineageGraphInner({
                       handleFocusNode(m.unique_id);
                       setSearchPanelOpen(false);
                     }}
-                    className="w-full text-left px-3 py-2 rounded text-xs text-white hover:bg-sky-500/20 transition-colors"
+                    className="w-full text-left px-3 py-2 rounded text-xs text-foreground hover:bg-sky-50 dark:hover:bg-sky-500/20 hover:text-sky-600 transition-colors"
                   >
                     {m.name}
                   </button>
                 ))
               ) : (
-                <div className="p-4 text-center text-xs text-slate-500">
+                <div className="p-4 text-center text-xs text-muted-foreground">
                   No results
                 </div>
               )}
             </div>
-            <div className="p-2 border-t border-slate-800 text-[9px] text-slate-500 text-center uppercase tracking-wider">
+            <div className="p-2 border-t border-border text-[9px] text-muted-foreground text-center uppercase tracking-wider">
               {searchResults.length} nodes
             </div>
           </div>
@@ -791,8 +794,8 @@ function LineageGraphInner({
             variant="outline"
             size="sm"
             className={cn(
-              "bg-slate-900/90 border-slate-700/50 text-slate-300 hover:bg-sky-500/20 hover:text-sky-400 hover:border-sky-500/30 transition-all h-8 px-3 gap-1.5 backdrop-blur-xl shadow-xl",
-              showFilters && "bg-sky-500/10 border-sky-500/30 text-sky-400"
+              "bg-card/90 border-border text-foreground hover:bg-sky-50 dark:hover:bg-sky-500/20 hover:text-sky-600 dark:hover:text-sky-400 hover:border-sky-200 dark:hover:border-sky-500/30 transition-all h-8 px-3 gap-1.5 backdrop-blur-xl shadow-xl",
+              showFilters && "bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30 text-sky-600 dark:text-sky-400"
             )}
             onClick={() => setShowFilters(!showFilters)}
           >
@@ -862,73 +865,73 @@ function LineageGraphInner({
 
         {/* Loading Overlay */}
         {graphLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 text-slate-100 text-sm font-mono z-40">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 text-foreground text-sm font-mono z-40 backdrop-blur-sm">
             Loading lineage graph...
           </div>
         )}
 
         {/* Error Banner */}
         {graphError && (
-          <div className="absolute inset-x-4 top-4 z-40 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700 text-sm shadow">
+          <div className="absolute inset-x-4 top-4 z-40 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-destructive text-sm shadow">
             {graphError}
           </div>
         )}
 
         {/* Hover Tooltip */}
         {hoveredNode && (
-          <div className="absolute bottom-6 left-6 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-6 shadow-2xl max-w-md animate-in slide-in-from-bottom-4 backdrop-blur-xl text-white z-30 pointer-events-none">
+          <div className="absolute bottom-6 left-6 bg-card/95 border border-border rounded-2xl p-6 shadow-2xl max-w-md animate-in slide-in-from-bottom-4 backdrop-blur-xl text-foreground z-30 pointer-events-none">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-2.5 w-2.5 rounded-full bg-sky-500 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-400">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-500 dark:text-sky-400">
                 Node Details
               </span>
             </div>
-            <p className="font-black text-lg text-white tracking-tight mb-3">
+            <p className="font-black text-lg text-foreground tracking-tight mb-3">
               {hoveredNode.label}
             </p>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between py-2 border-b border-white/5 gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+              <div className="flex items-center justify-between py-2 border-b border-border gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
                   Schema
                 </span>
-                <span className="font-mono text-xs text-white truncate text-right">
+                <span className="font-mono text-xs text-foreground truncate text-right">
                   {hoveredNode.schema}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-white/5 gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+              <div className="flex items-center justify-between py-2 border-b border-border gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
                   Package
                 </span>
-                <span className="font-mono text-xs text-white truncate text-right" title={hoveredNode.packageName}>
+                <span className="font-mono text-xs text-foreground truncate text-right" title={hoveredNode.packageName}>
                   {hoveredNode.packageName}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-white/5 gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+              <div className="flex items-center justify-between py-2 border-b border-border gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
                   Type
                 </span>
-                <span className="font-mono text-xs text-white capitalize truncate text-right">
+                <span className="font-mono text-xs text-foreground capitalize truncate text-right">
                   {hoveredNode.materialization}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
                   Resource
                 </span>
-                <span className="font-mono text-xs text-white capitalize truncate text-right">
+                <span className="font-mono text-xs text-foreground capitalize truncate text-right">
                   {hoveredNode.resourceType}
                 </span>
               </div>
               {hoveredNode.tags.length > 0 && (
-                <div className="pt-3 mt-2 border-t border-white/10">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2 block">
+                <div className="pt-3 mt-2 border-t border-border">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
                     Tags
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {hoveredNode.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 text-[9px] font-bold uppercase tracking-wide"
+                        className="px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[9px] font-bold uppercase tracking-wide"
                       >
                         {tag}
                       </span>
@@ -944,28 +947,28 @@ function LineageGraphInner({
       {/* ── Filters Bar ───────────────────────────────── */}
       <div
         className={cn(
-          "flex items-center gap-4 px-4 py-3 bg-[#0f172a] border-t border-slate-800 transition-all duration-300 overflow-x-auto flex-shrink-0",
+          "flex items-center gap-4 px-4 py-3 bg-card border-t border-border transition-all duration-300 overflow-x-auto flex-shrink-0",
           !showFilters &&
             "max-h-0 py-0 border-t-0 opacity-0 pointer-events-none"
         )}
       >
         {/* Resources */}
         <div className="flex flex-col gap-1.5 min-w-[120px]">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             resources
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center justify-between bg-slate-800/50 px-3 py-2 rounded border border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
-                <span className="text-[11px] font-medium text-slate-200">
+              <div className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded border border-border cursor-pointer hover:bg-muted transition-colors">
+                <span className="text-[11px] font-medium text-foreground">
                   {selectedResources.size === 3
                     ? "All selected"
                     : `${selectedResources.size} selected`}
                 </span>
-                <ChevronDown className="h-3 w-3 text-slate-500" />
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48 bg-slate-900 border-slate-800 text-slate-200">
+            <DropdownMenuContent className="w-48 bg-popover border-border text-popover-foreground">
               {(["model", "seed", "snapshot"] as const).map((type) => (
                 <DropdownMenuCheckboxItem
                   key={type}
@@ -989,21 +992,21 @@ function LineageGraphInner({
 
         {/* Packages */}
         <div className="flex flex-col gap-1.5 min-w-[140px]">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             packages
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center justify-between bg-slate-800/50 px-3 py-2 rounded border border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
-                <span className="text-[11px] font-medium text-slate-200 truncate max-w-[100px]">
+              <div className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded border border-border cursor-pointer hover:bg-muted transition-colors">
+                <span className="text-[11px] font-medium text-foreground truncate max-w-[100px]">
                   {selectedPackages.size === 0
                     ? "All packages"
                     : `${selectedPackages.size} selected`}
                 </span>
-                <ChevronDown className="h-3 w-3 text-slate-500" />
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 text-slate-200 max-h-64 overflow-y-auto">
+            <DropdownMenuContent className="w-56 bg-popover border-border text-popover-foreground max-h-64 overflow-y-auto custom-scrollbar">
               {allPackages.map((pkg) => (
                 <DropdownMenuCheckboxItem
                   key={pkg}
@@ -1026,21 +1029,21 @@ function LineageGraphInner({
 
         {/* Tags */}
         <div className="flex flex-col gap-1.5 min-w-[120px]">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             tags
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center justify-between bg-slate-800/50 px-3 py-2 rounded border border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors">
-                <span className="text-[11px] font-medium text-slate-200">
+              <div className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded border border-border cursor-pointer hover:bg-muted transition-colors">
+                <span className="text-[11px] font-medium text-foreground">
                   {selectedTags.size === 0
                     ? "All tags"
                     : `${selectedTags.size} selected`}
                 </span>
-                <ChevronDown className="h-3 w-3 text-slate-500" />
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 text-slate-200 max-h-64 overflow-y-auto">
+            <DropdownMenuContent className="w-56 bg-popover border-border text-popover-foreground max-h-64 overflow-y-auto custom-scrollbar">
               {allTags.map((tag) => (
                 <DropdownMenuCheckboxItem
                   key={tag}
@@ -1063,34 +1066,34 @@ function LineageGraphInner({
 
         {/* --select */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-[180px]">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             --select
           </span>
           <Input
             placeholder="..."
             value={selectInput}
             onChange={(e) => setSelectInput(e.target.value)}
-            className="h-9 bg-slate-800/50 border-slate-700/50 rounded text-[11px] font-mono px-3 focus:border-sky-500/50 transition-all text-slate-200 placeholder:text-slate-600"
+            className="h-9 bg-muted/50 border-border rounded text-[11px] font-mono px-3 focus:border-sky-500/50 transition-all text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
         {/* --exclude */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-[180px]">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             --exclude
           </span>
           <Input
             placeholder="..."
             value={excludeInput}
             onChange={(e) => setExcludeInput(e.target.value)}
-            className="h-9 bg-slate-800/50 border-slate-700/50 rounded text-[11px] font-mono px-3 text-slate-200 placeholder:text-slate-600 focus:border-sky-500/50"
+            className="h-9 bg-muted/50 border-border rounded text-[11px] font-mono px-3 text-foreground placeholder:text-muted-foreground focus:border-sky-500/50"
           />
         </div>
 
         <div className="flex items-end h-full pt-4">
           <Button
             onClick={() => fitView({ padding: 0.12, duration: 300 })}
-            className="h-9 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white rounded border border-slate-700 px-4 text-[11px] font-bold uppercase tracking-wider transition-all"
+            className="h-9 bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground rounded border border-border px-4 text-[11px] font-bold uppercase tracking-wider transition-all"
           >
             Re-center
           </Button>
@@ -1099,7 +1102,7 @@ function LineageGraphInner({
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-slate-600 hover:text-white"
+          className="h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground ml-auto"
           onClick={() => onOpenChange(false)}
         >
           <X className="h-4 w-4" />
@@ -1114,7 +1117,7 @@ function LineageGraphInner({
 export function LineageGraph(props: LineageGraphProps) {
   const dialogClasses = cn(
     "p-0 gap-0 overflow-hidden bg-background dark:bg-slate-950 border-sky-200 dark:border-slate-900 shadow-2xl flex flex-col",
-    "w-[95vw] max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[80vw] h-[90vh] md:h-[85vh]",
+    "w-[98vw] max-w-[98vw] sm:max-w-[95vw] md:max-w-[92vw] lg:max-w-[90vw] h-[95vh] md:h-[90vh]",
     "!rounded-xl"
   );
 

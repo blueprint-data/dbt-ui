@@ -114,13 +114,13 @@ const TreeRow = memo(function TreeRow({
       aria-expanded={hasChildren ? node.isExpanded : undefined}
       aria-selected={node.isSelected}
       className={cn(
-        "flex items-center h-8 px-3 cursor-pointer select-none rounded-lg transition-all group mx-1 relative overflow-hidden btn-press",
-        "hover:bg-sky-50 dark:hover:bg-sky-900/20 focus:outline-none focus:ring-1 focus:ring-sky-500/20",
+        "flex items-center h-8 px-3 cursor-pointer select-none rounded-lg transition-all mx-1 relative overflow-hidden group/tree",
+        "focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary-500)]/30",
         node.isSelected
-          ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black shadow-md shadow-sky-500/20 ring-1 ring-sky-400"
-          : "text-muted-foreground hover:text-foreground font-medium",
-        node.isAncestorOfSelected && !node.isSelected && "bg-slate-50/50 dark:bg-slate-800/20",
-        isHighlighted && "ring-1 ring-sky-500 shadow-lg dark:shadow-sky-900/20"
+          ? "bg-[var(--brand-primary-500)] text-white font-bold shadow-md ring-1 ring-white/10"
+          : "text-[var(--semantic-text-body)] hover:text-[var(--semantic-text-strong)] hover:bg-[var(--semantic-surface-default)] font-medium",
+        node.isAncestorOfSelected && !node.isSelected && "bg-[var(--semantic-surface-muted)]",
+        isHighlighted && "ring-1 ring-[var(--brand-primary-500)] shadow-[0_0_10px_rgba(81,81,243,0.15)]"
       )}
       style={{ paddingLeft: `${node.depth * 14 + 12}px` }}
       onClick={handleClick}
@@ -130,8 +130,12 @@ const TreeRow = memo(function TreeRow({
       {Array.from({ length: node.depth }).map((_, i) => (
         <div
           key={i}
-          className="absolute h-full w-[1px] bg-slate-200/30 dark:bg-slate-800/40"
-          style={{ left: `${i * 14 + 18}px` }}
+          className="absolute h-full w-[1px]"
+          style={{ 
+            left: `${i * 14 + 18}px`,
+            background: 'var(--semantic-border-subtle)',
+            opacity: 0.6
+          }}
         />
       ))}
 
@@ -139,9 +143,9 @@ const TreeRow = memo(function TreeRow({
       <span className="w-4 h-4 flex items-center justify-center shrink-0 mr-1.5 transition-transform z-10">
         {hasChildren ? (
           node.isExpanded ? (
-            <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ChevronDown className="h-3 w-3 opacity-60 group-hover/tree:opacity-100 transition-opacity" />
           ) : (
-            <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ChevronRight className="h-3 w-3 opacity-60 group-hover/tree:opacity-100 transition-opacity" />
           )
         ) : null}
       </span>
@@ -165,8 +169,8 @@ const TreeRow = memo(function TreeRow({
       {/* Count badge for folders */}
       {node.meta?.count && node.type !== "model" && (
         <span className={cn(
-          "ml-2 text-[9px] font-black font-mono tracking-widest transition-colors z-10",
-          node.isSelected ? "text-primary-foreground/40" : "text-muted-foreground/20 group-hover:text-muted-foreground/40"
+          "ml-2 text-[9px] font-black font-mono tracking-widest transition-opacity z-10",
+          node.isSelected ? "opacity-60 text-white" : "opacity-30 group-hover/tree:opacity-60 text-[var(--semantic-text-body)]"
         )}>
           {node.meta.count}
         </span>
@@ -177,7 +181,7 @@ const TreeRow = memo(function TreeRow({
         <span
           className={cn(
             "ml-2 text-[8px] font-black uppercase tracking-[0.2em] transition-opacity z-10",
-            node.isSelected ? "text-primary-foreground/60" : cn("opacity-40 group-hover:opacity-100", materializationColors[node.meta.materialization])
+            node.isSelected ? "opacity-60 text-white" : cn("opacity-40 group-hover/tree:opacity-100", materializationColors[node.meta.materialization])
           )}
         >
           {node.meta.materialization.slice(0, 3)}

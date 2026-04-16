@@ -92,15 +92,18 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex items-center justify-between px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground border-b border-slate-200 dark:border-slate-800">
+      <div 
+        className="flex items-center justify-between px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--semantic-text-body)] border-b"
+        style={{ borderColor: 'var(--semantic-border-subtle)' }}
+      >
         <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-sky-500" />
+          <Database className="h-4 w-4 text-[var(--brand-primary-500)]" />
           <span>Database</span>
         </div>
-        <span className="font-mono text-xs text-muted-foreground/60">{totalModels}</span>
+        <span className="font-mono text-xs opacity-60">{totalModels}</span>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-[var(--semantic-surface-default)]">
         {loading && (
           <div className="p-4 text-xs text-slate-500">Loading database tree...</div>
         )}
@@ -111,35 +114,42 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
           <div className="p-4 text-xs text-slate-500">No models found.</div>
         )}
 
-        <div className="p-2 space-y-1">
+        <div className="p-3 space-y-2">
           {data.map((db) => {
             const dbOpen = openDbs.has(db.name);
             const dbCount = db.schemas.reduce((acc, s) => acc + s.models.length, 0);
             return (
-              <div key={db.name} className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+              <div 
+                key={db.name} 
+                className="rounded-lg overflow-hidden border shadow-sm transition-all"
+                style={{ borderColor: 'var(--semantic-border-subtle)', background: 'var(--semantic-surface-default)' }}
+              >
                 <button
                   type="button"
                   onClick={() => toggleDb(db.name)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-[var(--semantic-surface-muted)]"
                 >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    {dbOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[var(--semantic-text-strong)]">
+                    {dbOpen ? <ChevronDown className="h-4 w-4 text-[var(--semantic-text-body)]" /> : <ChevronRight className="h-4 w-4 text-[var(--semantic-text-body)]" />}
                     <span className="truncate">{db.name}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-muted-foreground">{dbCount}</span>
+                  <span className="text-[10px] font-mono text-[var(--semantic-text-body)] opacity-70">{dbCount}</span>
                 </button>
 
                 {dbOpen && (
-                  <div className="pl-4 pr-2 pb-2 space-y-1">
+                  <div className="pl-4 pr-2 pb-2 mt-1 space-y-1.5">
                     {db.schemas.map((schema) => {
                       const key = `${db.name}:${schema.name}`;
                       const schemaOpen = openSchemas.has(key);
                       return (
-                        <div key={key} className="rounded-md border border-slate-100 dark:border-slate-800/60">
+                        <div 
+                          key={key} 
+                          className="rounded-md border border-[var(--semantic-border-subtle)] bg-[var(--semantic-surface-muted)] overflow-hidden"
+                        >
                           <button
                             type="button"
                             onClick={() => toggleSchema(db.name, schema.name)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-white dark:hover:bg-slate-800/40 rounded-t-md transition-colors"
+                            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-[var(--semantic-surface-default)] rounded-t-md transition-colors"
                           >
                             <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground/80">
                               {schemaOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -159,13 +169,13 @@ export function DatabaseTree({ selectedModelId = null, className }: DatabaseTree
                                     type="button"
                                     onClick={() => handleSelect(m.unique_id)}
                                     className={cn(
-                                      "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-sm transition-colors",
+                                      "w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-sm transition-all shadow-none",
                                       isSel
-                                        ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400 font-bold"
-                                        : "hover:bg-white dark:hover:bg-slate-800 border border-transparent text-muted-foreground hover:text-foreground"
+                                        ? "bg-[rgba(81,81,243,0.1)] border border-[rgba(81,81,243,0.3)] text-[var(--semantic-text-strong)] font-bold shadow-sm"
+                                        : "hover:bg-[var(--semantic-surface-default)] border border-transparent text-[var(--semantic-text-body)] hover:text-[var(--semantic-text-strong)]"
                                     )}
                                   >
-                                    <FileCode className={cn("h-3.5 w-3.5", isSel ? "text-emerald-500" : "text-muted-foreground")} />
+                                    <FileCode className={cn("h-3.5 w-3.5 shrink-0", isSel ? "text-[var(--brand-primary-500)]" : "opacity-60")} />
                                     <span className="truncate">{m.name}</span>
                                   </button>
                                 );
