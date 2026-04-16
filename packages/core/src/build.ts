@@ -17,7 +17,7 @@ function normalizeTags(tags: unknown): string[] {
     return tags.filter((t) => typeof t === "string") as string[];
 }
 
-function pickPath(node: any): string | null {
+function pickPath(node: DbtNode): string | null {
     return (
         (typeof node.original_file_path === "string" && node.original_file_path) ||
         (typeof node.path === "string" && node.path) ||
@@ -25,8 +25,9 @@ function pickPath(node: any): string | null {
     );
 }
 
-function pickMaterialized(node: any): string | null {
-    const m = node?.config?.materialized;
+function pickMaterialized(node: DbtNode): string | null {
+    const config = node.config as Record<string, unknown> | undefined;
+    const m = config?.materialized;
     return typeof m === "string" ? m : null;
 }
 
@@ -37,14 +38,14 @@ function insertModels(db: Db, nodes: DbtNode[]) {
         n.resource_type,
         n.package_name ?? null,
         pickPath(n),
-        (n as any).database ?? null,
-        (n as any).schema ?? null,
-        (n as any).alias ?? null,
+        n.database ?? null,
+        n.schema ?? null,
+        n.alias ?? null,
         pickMaterialized(n),
-        (n as any).description ?? null,
-        safeJson(normalizeTags((n as any).tags)),
-        safeJson((n as any).meta),
-        safeJson((n as any).config),
+        n.description ?? null,
+        safeJson(normalizeTags(n.tags)),
+        safeJson(n.meta),
+        safeJson(n.config),
     ]);
 
     db.transaction(() => {
@@ -108,7 +109,7 @@ function populateSearchDocs(db: Db, nodes: DbtNode[]) {
     const rows: any[] = [];
 
     for (const n of nodes) {
-        const tagsArr = normalizeTags((n as any).tags);
+        const tagsArr = normalizeTags(n.tags);
         const tags = tagsArr.join(" ");
 
         rows.push([
@@ -116,9 +117,9 @@ function populateSearchDocs(db: Db, nodes: DbtNode[]) {
             n.unique_id,
             n.unique_id,
             n.name ?? "",
-            (n as any).description ?? "",
+            n.description ?? "",
             tags,
-            (n as any).schema ?? "",
+            n.schema ?? "",
             n.package_name ?? "",
             pickPath(n) ?? "",
         ]);
@@ -132,7 +133,7 @@ function populateSearchDocs(db: Db, nodes: DbtNode[]) {
                 colName,
                 colDef?.description ?? "",
                 tags,
-                (n as any).schema ?? "",
+                n.schema ?? "",
                 n.package_name ?? "",
                 pickPath(n) ?? "",
             ]);

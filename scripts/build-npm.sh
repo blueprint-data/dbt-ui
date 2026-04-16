@@ -73,47 +73,7 @@ npm install --omit=dev
 cp -r "$TMP_CLI/node_modules" "$CLI_DIR/"
 rm -rf "$TMP_CLI"
 
-# Update CLI package.json for npm publish
-cat > "$CLI_DIR/package.json" << 'EOF'
-{
-  "name": "dbt-ui",
-  "version": "0.1.0",
-  "description": "Modern documentation viewer for dbt projects",
-  "type": "module",
-  "bin": {
-    "dbt-ui": "./bin/dbt-ui.js"
-  },
-  "files": [
-    "bin",
-    "web-app",
-    "node_modules"
-  ],
-  "keywords": [
-    "dbt",
-    "documentation",
-    "data",
-    "analytics",
-    "lineage",
-    "sql"
-  ],
-  "author": "Juan Pablo Rivero",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/blueprint-data/dbt-ui.git"
-  },
-  "homepage": "https://github.com/blueprint-data/dbt-ui",
-  "bugs": {
-    "url": "https://github.com/blueprint-data/dbt-ui/issues"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "sql.js": "^1.13.0"
-  }
-}
-EOF
+echo "  → Using existing CLI package.json for publish (managed by changesets)"
 
 echo "🔧 Making bin script executable..."
 chmod +x "$CLI_DIR/bin/dbt-ui.js"

@@ -68,13 +68,10 @@ async function generate() {
 
     // Check if manifest exists
     if (!fs.existsSync(absManifest)) {
-        console.error(`❌ Manifest not found: ${absManifest}`);
-        console.error("\nMake sure you run this command from your dbt project root.");
-        console.error("If your manifest is in a different location, use:");
-        console.error(`  dbt-ui generate --manifest <path-to-manifest.json>`);
-        console.error("\nTo generate the manifest, run:");
-        console.error("  dbt docs generate");
-        process.exit(1);
+        throw new CliError(
+           `Manifest not found: ${absManifest}`,
+           `Make sure you run this command from your dbt project root.\nIf your manifest is in a different location, use:\n  dbt-ui generate --manifest <path-to-manifest.json>\nTo generate the manifest, run:\n  dbt docs generate`
+        );
     }
 
     console.log(`📄 Manifest: ${absManifest}`);
@@ -253,10 +250,10 @@ function serve() {
     const absDb = path.resolve(dbPath);
 
     if (!fs.existsSync(absDb)) {
-        console.error(`❌ SQLite not found: ${absDb}`);
-        console.error(`\nTo fix this, run 'dbt-ui generate' first.`);
-        console.error(`Or specify the database path: dbt-ui serve --db <path>`);
-        process.exit(1);
+        throw new CliError(
+            `SQLite not found: ${absDb}`,
+            `To fix this, run 'dbt-ui generate' first.\nOr specify the database path: dbt-ui serve --db <path>`
+        );
     }
 
     console.log("\n============================================================");
@@ -270,11 +267,10 @@ function serve() {
     const webAppDir = path.resolve(__dirname, "../web-app");
 
     if (!fs.existsSync(webAppDir)) {
-        console.error("❌ Error: Web application not found.");
-        console.error(`Looking at: ${webAppDir}`);
-        console.error("\nPlease reinstall dbt-ui:");
-        console.error("  npm install -g dbt-ui");
-        process.exit(1);
+        throw new CliError(
+            `Web application not found at ${webAppDir}`,
+            `Please reinstall dbt-ui:\n  npm install -g dbt-ui`
+        );
     }
 
     const childEnv = {
@@ -291,18 +287,45 @@ function serve() {
     });
 }
 
-// Main
-if (command === "generate") {
-    generate().catch(err => {
-        console.error("❌ Error:", err.message);
-        process.exit(1);
-    });
-} else if (command === "serve") {
-    serve();
-} else if (command === "--version" || command === "-v") {
-    console.log(VERSION);
-} else if (command === "help" || command === "--help" || command === "-h") {
-    printUsage();
-} else {
-    printUsage();
+// Centralized Error Handling
+class CliError extends Error {
+    constructor(message, suggestion) {
+        super(message);
+        this.suggestion = suggestion;
+        this.name = 'CliError';
+    }
 }
+
+function handleError(err) {
+    if (err instanceof CliError) {
+        console.error(`\n❌ Error: ${err.message}`);
+        if (err.suggestion) {
+            console.error(`\n💡 Sugerencia:\n${err.suggestion}`);
+        }
+    } else {
+        console.error(`\n❌ Unexpected Error: ${err.message}`);
+        if (process.env.DEBUG) console.error(err.stack);
+    }
+    process.exit(1);
+}
+
+// Global Exception Catchers
+process.on('unhandledRejection', (reason) => handleError(reason instanceof Error ? reason : new Error(String(reason))));
+process.on('uncaughtException', handleError);
+
+// Main Workflow Router
+async function run() {
+    if (command === "generate") {
+        await generate();
+    } else if (command === "serve") {
+        serve();
+    } else if (command === "--version" || command === "-v") {
+        console.log(VERSION);
+    } else if (command === "help" || command === "--help" || command === "-h") {
+        printUsage();
+    } else {
+        printUsage();
+    }
+}
+
+run().catch(handleError);

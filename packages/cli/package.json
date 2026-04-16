@@ -1,5 +1,5 @@
 {
-  "name": "dbt-ui",
+  "name": "@blueprint-data/dbt-ui",
   "version": "0.1.0",
   "description": "Modern documentation viewer for dbt projects",
   "type": "module",
