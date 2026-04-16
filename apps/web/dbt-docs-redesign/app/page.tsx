@@ -6,8 +6,6 @@ import { MobileFilters } from "@/components/mobile-filters";
 import { ModelsTable } from "@/components/models-table";
 import { Pagination } from "@/components/pagination";
 import { fetchModels } from "@/lib/api";
-import { Database, GitBranch, RefreshCw } from "lucide-react";
-import { StatCard } from "@/components/stat-card";
 import type { ModelSummary, Facets, FiltersState } from "@/lib/types";
 
 const ITEMS_PER_PAGE = 20;
@@ -74,39 +72,6 @@ export default function ExplorerPage() {
     >
       <div className="p-6 md:p-8 max-w-[1600px] mx-auto bg-gradient-to-b from-[#f8fbff] via-[#eef5ff] to-[#e2ecff] dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 rounded-3xl shadow-[0_32px_64px_-16px_rgba(14,165,233,0.1)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white dark:border-white/5">
         <div className="flex flex-col gap-6 md:gap-8">
-          {/* Dashboard Stats Header */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard
-              title="data assets"
-              value={total.toLocaleString()}
-              statusText="Active Manifest"
-              statusColor="bg-emerald-500"
-              icon={<Database className="h-12 w-12" />}
-              className="reveal-init animate-in-up stagger-1"
-            />
-
-            <StatCard
-              title="test coverage"
-              value="94.2"
-              unit="%"
-              statusText="Industrial Standard"
-              statusColor="bg-blue-500"
-              icon={<GitBranch className="h-12 w-12" />}
-              className="reveal-init animate-in-up stagger-2"
-            />
-
-            <StatCard
-              title="last analytics"
-              value="2"
-              unit="m ago"
-              statusText="Live Syncing"
-              statusColor="bg-violet-500"
-              icon={<RefreshCw className="h-12 w-12" />}
-              className="reveal-init animate-in-up stagger-3"
-              pulse
-            />
-          </div>
-
           {/* Filters + Results Count (Popup global) */}
           <div className="flex items-center justify-between flex-wrap gap-3 reveal-init animate-in-up stagger-4">
             <div className="flex items-center gap-3">
