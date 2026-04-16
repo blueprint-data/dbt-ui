@@ -61,6 +61,10 @@ next-env.d.ts
 .agents/
 .opencode/
 .gemini/
+.atl/
+.claude/
+CLAUDE.md
+skills-lock.json
 
 # OS files
 .DS_Store
@@ -100,3 +104,7 @@ verify-setup.js
 
 # ESLint
 .eslintcache
+
+# NPM Distribution
+*.tgz
+packages/cli/web-app/

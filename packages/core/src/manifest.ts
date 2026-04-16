@@ -1,7 +1,9 @@
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 export type Manifest = {
-    nodes?: Record<string, any>;
-    sources?: Record<string, any>;
-    metadata?: any;
+    nodes?: Record<string, DbtNode>;
+    sources?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 };
 
 export type DbtNode = {
@@ -16,8 +18,8 @@ export type DbtNode = {
     alias?: string;
     description?: string;
     tags?: string[];
-    meta?: any;
-    config?: any;
-    columns?: Record<string, { description?: string; meta?: any }>;
+    meta?: Record<string, JsonValue>;
+    config?: Record<string, JsonValue>;
+    columns?: Record<string, { description?: string; meta?: Record<string, JsonValue> }>;
     depends_on?: { nodes?: string[] };
 };
