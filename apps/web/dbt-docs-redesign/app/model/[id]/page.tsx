@@ -216,23 +216,23 @@ export default function ModelDetailPage() {
 
             {/* Tabs */}
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="w-full justify-start border-b border-border/60 rounded-none h-auto p-0 bg-transparent overflow-x-auto gap-8">
+              <TabsList className="w-full justify-start border-b border-border/60 rounded-none h-auto p-0 bg-transparent overflow-x-auto gap-6 md:gap-8 custom-scrollbar pb-px flex-nowrap">
                 <TabsTrigger
                   value="overview"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Overview
                 </TabsTrigger>
                 <TabsTrigger
                   value="columns"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Columns
                   <span className="ml-2 font-mono text-muted-foreground/60 font-normal">{(model.columns || []).length}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="upstream"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Upstream
                   {!lineageLoading && (
@@ -241,7 +241,7 @@ export default function ModelDetailPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="downstream"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Downstream
                   {!lineageLoading && (
@@ -250,7 +250,7 @@ export default function ModelDetailPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="code"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Code
                 </TabsTrigger>
@@ -308,7 +308,7 @@ export default function ModelDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start gap-3 bg-slate-50 border-slate-200 hover:bg-white hover:border-sky-200 hover:text-sky-600 transition-all h-10 text-xs font-bold uppercase tracking-wider text-slate-600"
+                    className="w-full justify-start gap-3 bg-muted border-border hover:bg-card hover:border-sky-200 dark:hover:border-sky-900 hover:text-sky-600 dark:hover:text-sky-400 transition-all h-10 text-xs font-bold uppercase tracking-wider text-muted-foreground"
                     onClick={handleOpenNewTab}
                   >
                     <ExternalLink className="h-4 w-4" />

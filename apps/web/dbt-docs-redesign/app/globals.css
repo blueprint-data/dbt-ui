@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@custom-variant dark (&:is(.dark *));
+
 @variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -59,6 +61,24 @@
   --dark-section-foreground: oklch(0.95 0.01 240);
   /* Light text */
   --dark-section-muted: oklch(0.4 0.02 245);
+  --brand-primary-500: #5151f3;
+  --brand-primary-600: #4040d9;
+  --brand-secondary-500: #22eaed;
+  --brand-secondary-600: #00c7cb;
+  --semantic-bg-page: #fafafa;
+  --semantic-surface-default: rgba(255, 255, 255, 0.94);
+  --semantic-surface-muted: #f8fafc;
+  --semantic-text-strong: #111827;
+  --semantic-text-body: #374151;
+  --semantic-border-subtle: rgba(229, 231, 235, 0.95);
+  --component-radius-card: 1rem;
+  --component-radius-pill: 9999px;
+  --component-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --component-shadow-card-hover: 0 20px 40px -15px rgba(0, 0, 0, 0.09);
+  --component-input-radius: 0.75rem;
+  --component-input-height: 3rem;
+  --component-textarea-min-height: 7rem;
+  --component-focus-ring: rgba(81, 81, 243, 0.24);
 }
 
 .dark {
@@ -90,6 +110,14 @@
   --sidebar-accent: oklch(0.18 0.04 245);
   --sidebar-accent-foreground: var(--primary);
   --sidebar-border: oklch(0.22 0.03 245);
+  --semantic-bg-page: #111827;
+  --semantic-surface-default: rgba(17, 24, 39, 0.9);
+  --semantic-surface-muted: #1f2937;
+  --semantic-text-strong: #f9fafb;
+  --semantic-text-body: #d1d5db;
+  --semantic-border-subtle: rgba(55, 65, 81, 0.95);
+  --component-focus-ring: rgba(34, 234, 237, 0.2);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -133,6 +161,24 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --tracking-tightest: -0.05em;
+  --color-component-focus-ring: var(--component-focus-ring);
+  --component-textarea-min-height: var(--component-textarea-min-height);
+  --component-input-height: var(--component-input-height);
+  --component-input-radius: var(--component-input-radius);
+  --component-shadow-card-hover: var(--component-shadow-card-hover);
+  --component-shadow-card: var(--component-shadow-card);
+  --component-radius-pill: var(--component-radius-pill);
+  --component-radius-card: var(--component-radius-card);
+  --color-semantic-border-subtle: var(--semantic-border-subtle);
+  --color-semantic-text-body: var(--semantic-text-body);
+  --color-semantic-text-strong: var(--semantic-text-strong);
+  --color-semantic-surface-muted: var(--semantic-surface-muted);
+  --color-semantic-surface-default: var(--semantic-surface-default);
+  --color-semantic-bg-page: var(--semantic-bg-page);
+  --color-brand-secondary-600: var(--brand-secondary-600);
+  --color-brand-secondary-500: var(--brand-secondary-500);
+  --color-brand-primary-600: var(--brand-primary-600);
+  --color-brand-primary-500: var(--brand-primary-500);
 }
 
 @layer base {
@@ -234,6 +280,14 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: oklch(0.75 0.05 235);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: oklch(0.3 0.02 245);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.5 0.03 245);
   }
 
   /* Utilities */
@@ -390,5 +444,98 @@
 
   .stagger-10 {
     animation-delay: 0.5s;
+  }
+}
+
+@layer components {
+  .bp-card {
+    border-radius: var(--component-radius-card);
+    border: 1px solid var(--semantic-border-subtle);
+    background: var(--semantic-surface-default);
+    box-shadow: var(--component-shadow-card);
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.35s ease;
+  }
+  .bp-card-interactive:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--component-shadow-card-hover);
+    border-color: rgba(209, 213, 219, 1);
+  }
+  .bp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--component-radius-pill);
+    border: 1px solid transparent;
+    font-weight: 600;
+    line-height: 1.5;
+    transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  }
+  .bp-btn-primary {
+    border-color: var(--brand-primary-500);
+    background: var(--brand-primary-500);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(81, 81, 243, 0.22);
+  }
+  .bp-btn-primary:hover {
+    background: transparent;
+    color: var(--brand-primary-500);
+    box-shadow: 0 12px 26px rgba(81, 81, 243, 0.28);
+  }
+  .bp-btn-secondary {
+    border-color: var(--brand-secondary-500);
+    background: var(--brand-secondary-500);
+    color: #00182e;
+  }
+  .bp-btn-secondary:hover {
+    background: transparent;
+    color: var(--brand-secondary-600);
+  }
+  .bp-btn-outline {
+    border-color: var(--brand-primary-500);
+    background: transparent;
+    color: var(--brand-primary-500);
+  }
+  .bp-btn-outline:hover {
+    background: var(--brand-primary-500);
+    color: #ffffff;
+  }
+  .bp-input, .bp-textarea {
+    border: 1px solid var(--semantic-border-subtle);
+    background: var(--semantic-surface-default);
+    color: var(--semantic-text-strong);
+    border-radius: var(--component-input-radius);
+    transition: border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+  }
+  .bp-input {
+    min-height: var(--component-input-height);
+  }
+  .bp-textarea {
+    min-height: var(--component-textarea-min-height);
+  }
+  .bp-input::placeholder, .bp-textarea::placeholder {
+    color: var(--semantic-text-body);
+  }
+  .bp-input:focus-visible, .bp-textarea:focus-visible {
+    outline: none;
+    border-color: var(--brand-primary-500);
+    box-shadow: 0 0 0 3px var(--component-focus-ring);
+  }
+  .magnetic-button {
+    transform: translate3d(var(--bp-magnetic-x, 0px), var(--bp-magnetic-y, 0px), 0);
+    will-change: transform;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease, background-color 220ms ease, color 220ms ease, border-color 220ms ease;
+  }
+  .magnetic-button:disabled {
+    transform: translate3d(0, 0, 0);
+  }
+  .card-3d {
+    position: relative;
+    transform-style: preserve-3d;
+    touch-action: pan-y;
+  }
+  .card-3d-inner {
+    transform-style: preserve-3d;
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }

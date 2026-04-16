@@ -65,18 +65,55 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const limit = clampInt(url.searchParams.get("limit"), 20, 1, 200);
   const offset = clampInt(url.searchParams.get("offset"), 0, 0, Number.MAX_SAFE_INTEGER);
+  const filtersParam = url.searchParams.get("filters");
+  let filters: any = null;
+  if (filtersParam) {
+    try {
+      filters = JSON.parse(filtersParam);
+    } catch {}
+  }
+
+  const conditions: string[] = [];
+  const queryParams: any[] = [];
+
+  if (filters) {
+    if (filters.resourceType) {
+      conditions.push("resource_type = ?");
+      queryParams.push(filters.resourceType);
+    }
+    if (filters.schemas?.length > 0) {
+      conditions.push(`schema_name IN (${filters.schemas.map(() => "?").join(",")})`);
+      queryParams.push(...filters.schemas);
+    }
+    if (filters.packages?.length > 0) {
+      conditions.push(`package_name IN (${filters.packages.map(() => "?").join(",")})`);
+      queryParams.push(...filters.packages);
+    }
+    if (filters.materializations?.length > 0) {
+      conditions.push(`materialized IN (${filters.materializations.map(() => "?").join(",")})`);
+      queryParams.push(...filters.materializations);
+    }
+    if (filters.tags?.length > 0) {
+      const tagConditions = filters.tags.map(() => "tags_json LIKE ?");
+      conditions.push(`(${tagConditions.join(" OR ")})`);
+      filters.tags.forEach((tag: string) => queryParams.push(`%"${tag}"%`));
+    }
+  }
+
+  const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
 
   const db = await getDb();
 
   try {
-    const totalRow = db.get("SELECT COUNT(*) AS total FROM model") as { total?: number };
+    const totalRow = db.get(`SELECT COUNT(*) AS total FROM model ${whereClause}`, queryParams) as { total?: number };
 
     const rows = db.all(
       `SELECT unique_id, name, description, schema_name, package_name, materialized, resource_type, tags_json
        FROM model
+       ${whereClause}
        ORDER BY name
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [...queryParams, limit, offset]
     ) as RawModelRow[];
 
     const items: ModelSummary[] = rows.map((row) => ({

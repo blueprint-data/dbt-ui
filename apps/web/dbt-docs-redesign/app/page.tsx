@@ -80,23 +80,12 @@ export default function ExplorerPage() {
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
               />
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">Asset Discovery</span>
-                <div className="text-xs text-muted-foreground font-mono">
+              <div className="flex flex-col justify-center">
+                <div className="text-xs font-bold text-muted-foreground font-mono bg-white/50 dark:bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700">
                   {isLoading ? (
-                    "UPDATING ASSETS..."
+                    "Loading..."
                   ) : (
-                    <>
-                      MATCHING:{" "}
-                      <span className="font-bold text-sky-600 dark:text-sky-400">
-                        {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, total)}-
-                        {Math.min(currentPage * ITEMS_PER_PAGE, total)}
-                      </span>{" "}
-                      OF{" "}
-                      <span className="font-bold text-foreground">
-                        {total.toLocaleString()}
-                      </span>
-                    </>
+                    `${total.toLocaleString()} assets`
                   )}
                 </div>
               </div>
