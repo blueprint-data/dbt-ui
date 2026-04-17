@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  check:
+    name: Type check, lint & build
     runs-on: ubuntu-latest
 
     steps:
@@ -18,20 +19,23 @@ jobs:
         with:
           version: 9
 
-      - name: Use Node.js 20.x
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: "pnpm"
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build Core
-        run: pnpm --filter @dbt-ui/core build
+      - name: Setup WASM
+        run: pnpm run setup:wasm
 
-      - name: Build Web App
-        run: pnpm --filter dbt-docs-redesign build
+      - name: Type check CLI
+        run: pnpm --filter @blueprint-data/dbt-ui exec tsc --noEmit
 
       - name: Lint
-        run: pnpm run lint || echo "Linting skipped (optional)"
+        run: pnpm --filter dbt-docs-redesign lint
+
+      - name: Build web app
+        run: pnpm --filter dbt-docs-redesign build
