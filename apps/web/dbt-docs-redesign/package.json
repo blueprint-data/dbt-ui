@@ -6,7 +6,7 @@
     "build": "next build",
     "build:standalone": "next build && cp -r .next/static .next/standalone/apps/web/dbt-docs-redesign/.next/ && cp -r public .next/standalone/apps/web/dbt-docs-redesign/",
     "dev": "next dev",
-    "lint": "next lint --dir .",
+    "lint": "next lint",
     "start": "next start",
     "start:standalone": "node .next/standalone/apps/web/dbt-docs-redesign/server.js",
     "setup:wasm": "node -e \"const fs=require('fs'),path=require('path');const src=path.join(__dirname,'node_modules/.pnpm');const dirs=fs.readdirSync(src).filter(d=>d.startsWith('sql.js@'));if(dirs[0]){const wasm=path.join(src,dirs[0],'node_modules/sql.js/dist/sql-wasm.wasm');const dest=path.join(__dirname,'public/sql-wasm.wasm');fs.copyFileSync(wasm,dest);console.log('✅ WASM file copied to public/');}\"",
