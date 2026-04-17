@@ -36,7 +36,7 @@ jobs:
 
       - name: Lint
         working-directory: apps/web/dbt-docs-redesign
-        run: pnpm run lint
+        run: pnpm exec next lint .
 
       - name: Build web app
         run: pnpm --filter dbt-docs-redesign build
