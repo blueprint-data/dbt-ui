@@ -35,6 +35,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "scripts": {
+    "prepack": "cp ../../README.md ./README.md"
+  },
   "dependencies": {
     "sql.js": "^1.13.0"
   }
