@@ -5,7 +5,6 @@
 
 A modern, full-stack solution for visualizing and exploring dbt projects. This monorepo contains both the data processing backend and a beautiful web interface for dbt documentation.
 
-> **Note:** The npm package is not yet published. See [Run Locally](#-run-locally-development) below for setup instructions.
 
 ## 🏗️ Architecture
 
@@ -144,98 +143,38 @@ A modern Next.js 16 application providing an intuitive interface for exploring d
 
 ## 🚀 Quick Start
 
-Since the npm package is not yet published, you run everything from the **cloned repo** and point it at your local dbt project.
-
 ### Prerequisites
 
 - **Node.js** 18.x or higher
-- **pnpm** (recommended) or **npm**
-- A **dbt project** on your machine (e.g. `~/projects/my-dbt-project`)
+- A **dbt project** with a `manifest.json` (run `dbt docs generate` or `dbt compile` to create one)
 
-### Step 1: Clone and Install dbt-ui
+### Step 1: Install
 
 ```bash
-git clone https://github.com/blueprint-data/dbt-ui.git
-cd dbt-ui
-pnpm install
+npm install -g @blueprint-data/dbt-ui
+# or use npx (no install needed)
 ```
 
-### Step 2: Setup WASM
+### Step 2: Generate the SQLite database
 
-Copy the sql.js WebAssembly file to the public directory:
-
-```bash
-pnpm run setup:wasm
-```
-
-### Step 3: Link to Your dbt Project
-
-dbt-ui needs the `manifest.json` file that dbt generates. Here's how to get it from your local dbt project:
-
-#### Option A: You already have a manifest.json
-
-If you've run `dbt docs generate` or `dbt compile` before, you already have the file at `<your-dbt-project>/target/manifest.json`. Just note the **absolute path**:
+Point it at your dbt project's `manifest.json` using the **absolute path**:
 
 ```bash
-# Example: check it exists
-ls ~/projects/my-dbt-project/target/manifest.json
-```
-
-#### Option B: Generate the manifest from your dbt project
-
-Go to your dbt project and generate it:
-
-```bash
-cd ~/projects/my-dbt-project
-dbt docs generate
-# This creates target/manifest.json
-```
-
-Then note the absolute path:
-```bash
-# Example
-echo $(pwd)/target/manifest.json
-# → /Users/you/projects/my-dbt-project/target/manifest.json
-```
-
-### Step 4: Build the SQLite Database
-
-Go back to the dbt-ui repo and build the database from your dbt manifest:
-
-```bash
-cd ~/path/to/dbt-ui
-
-# Replace the path with YOUR manifest.json location
-npx tsx packages/cli/src/index.ts generate \
-  --manifest /Users/you/projects/my-dbt-project/target/manifest.json \
-  --out target/dbt_ui.sqlite \
-  --skip-dbt
+npx dbt-ui generate --manifest /absolute/path/to/your/target/manifest.json --out ./target/dbt_ui.sqlite --skip-dbt
 ```
 
 You should see output like:
 ```
-Building SQLite at target/dbt_ui.sqlite from /Users/you/projects/my-dbt-project/target/manifest.json...
-SUCCESS: Database generated.
-- Models: 42
-- Columns: 318
-- Edges: 67
-- Search entries: 360
+✅ Database generated successfully!
+   Found 167 models
 ```
 
-### Step 5: Run the Web App
+> **Important:** Always use an absolute path for `--manifest`. Relative paths may not resolve correctly depending on your working directory.
 
-Set the database path and start the dev server:
-
-```bash
-# Inline (one-liner)
-DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite pnpm run dev
-```
-
-Or create a `.env.local` file in `apps/web/dbt-docs-redesign/` so you don't have to type it every time:
+### Step 3: Serve the UI
 
 ```bash
-echo "DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite" > apps/web/dbt-docs-redesign/.env.local
-pnpm run dev
+npx dbt-ui serve
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser 🎉
@@ -243,58 +182,56 @@ Open [http://localhost:3000](http://localhost:3000) in your browser 🎉
 ### Complete Example (end to end)
 
 ```bash
-# 1. Clone dbt-ui
-git clone https://github.com/blueprint-data/dbt-ui.git
-cd dbt-ui
-pnpm install
-pnpm run setup:wasm
-
-# 2. Generate the manifest in your dbt project
+# 1. Generate the manifest in your dbt project (if you haven't already)
 cd ~/projects/my-dbt-project
 dbt docs generate
 
-# 3. Build the database
-cd ~/path/to/dbt-ui
-npx tsx packages/cli/src/index.ts generate \
-  --manifest ~/projects/my-dbt-project/target/manifest.json \
-  --out target/dbt_ui.sqlite \
-  --skip-dbt
+# 2. Generate the dbt-ui database (run from anywhere)
+npx dbt-ui generate --manifest /Users/you/projects/my-dbt-project/target/manifest.json --out ./target/dbt_ui.sqlite --skip-dbt
 
-# 4. Run the web app
-echo "DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite" > apps/web/dbt-docs-redesign/.env.local
-pnpm run dev
+# 3. Serve
+npx dbt-ui serve
 
-# 5. Open http://localhost:3000
+# 4. Open http://localhost:3000
 ```
 
 ### Switching Between dbt Projects
 
-To visualize a different dbt project, just rebuild the database with the new manifest:
+Just regenerate the database pointing at the new manifest and refresh the browser:
 
 ```bash
-# Point to a different project's manifest
-npx tsx packages/cli/src/index.ts generate \
-  --manifest ~/projects/other-dbt-project/target/manifest.json \
-  --out target/dbt_ui.sqlite \
-  --skip-dbt
-
-# Restart the dev server (the DB path stays the same)
-pnpm run dev
+npx dbt-ui generate --manifest /path/to/other-project/target/manifest.json --out ./target/dbt_ui.sqlite --skip-dbt
+npx dbt-ui serve
 ```
-
-> **Tip:** The web app auto-detects when the database file changes, so in most cases you just need to refresh the browser after regenerating.
 
 ### Quick Reference
 
 | Task | Command |
 |------|---------|
-| Install all deps | `pnpm install` |
-| Setup WASM file | `pnpm run setup:wasm` |
-| Generate DB | `npx tsx packages/cli/src/index.ts generate --manifest <path> --out target/dbt_ui.sqlite --skip-dbt` |
-| Run dev server | `pnpm run dev` |
-| Build production | `pnpm run build` |
-| Build standalone | `pnpm run build:standalone` |
-| Clean cache | `rm -rf apps/web/dbt-docs-redesign/.next` |
+| Generate DB | `npx dbt-ui generate --manifest <absolute-path> --out target/dbt_ui.sqlite --skip-dbt` |
+| Serve UI | `npx dbt-ui serve` |
+| Custom port | `npx dbt-ui serve --port 3001` |
+| Custom DB path | `npx dbt-ui serve --db /path/to/dbt_ui.sqlite` |
+
+---
+
+## 🛠 Run Locally (Development)
+
+For contributors who want to run from the source:
+
+```bash
+git clone https://github.com/blueprint-data/dbt-ui.git
+cd dbt-ui
+pnpm install
+pnpm run setup:wasm
+
+# Generate DB
+npx tsx packages/cli/src/index.ts generate --manifest <path-to-manifest.json> --out target/dbt_ui.sqlite --skip-dbt
+
+# Run dev server
+echo "DBT_UI_DB_PATH=$(pwd)/target/dbt_ui.sqlite" > apps/web/dbt-docs-redesign/.env.local
+pnpm run dev
+```
 
 ## 🧪 Tech Stack
 
@@ -472,9 +409,9 @@ The goal is to make dbt-ui a single npm package that can be installed and run an
   - `dbt-ui serve` command starts the embedded web server ✅
   - Supports standalone + dev modes ✅
   
-- [ ] **Publish to npm**
-  - Package core + cli + standalone web as single `dbt-ui` package
-  - Users run: `npx dbt-ui serve --manifest ./target/manifest.json`
+- [x] **Publish to npm** ✅
+  - Package core + cli + standalone web as single `@blueprint-data/dbt-ui` package
+  - Users run: `npx dbt-ui generate --manifest <path> && npx dbt-ui serve`
 
 ### Phase 2: Feature Enhancements
 - [x] **Dark mode toggle** - System-aware theme with dark/light switcher ✅
