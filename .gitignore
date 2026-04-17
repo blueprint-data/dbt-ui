@@ -9,9 +9,6 @@ node_modules/
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
 
 # Next.js (for web apps)
 .next/
@@ -64,6 +61,10 @@ next-env.d.ts
 .agents/
 .opencode/
 .gemini/
+.atl/
+.claude/
+CLAUDE.md
+skills-lock.json
 
 # OS files
 .DS_Store
@@ -80,6 +81,13 @@ Thumbs.db
 *.sqlite
 *.db
 target/
+dbt_packages/
+dbt_modules/
+
+# Specific build artifacts
+*.wasm
+test-wasm-location.js
+verify-setup.js
 
 # Temporary files
 *.tmp
@@ -96,3 +104,7 @@ target/
 
 # ESLint
 .eslintcache
+
+# NPM Distribution
+*.tgz
+packages/cli/web-app/

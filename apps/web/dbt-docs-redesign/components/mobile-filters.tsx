@@ -47,21 +47,13 @@ export function MobileFilters({
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[320px] max-w-full p-0 bg-white text-slate-900 border-slate-200">
-        <SheetHeader className="px-6 py-4 border-b border-slate-200">
+      <SheetContent side="left" className="w-[320px] max-w-full p-0 bg-[var(--semantic-surface-default)] text-[var(--semantic-text-strong)] border-r border-[var(--semantic-border-subtle)]">
+        <SheetHeader className="px-6 py-4 border-b border-[var(--semantic-border-subtle)]">
           <SheetTitle className="flex items-center justify-between">
             Filters
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setOpen(false)}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </SheetTitle>
         </SheetHeader>
-        <div className="px-6 py-4 overflow-y-auto h-[calc(100vh-80px)]">
+        <div className="px-6 py-4 overflow-y-auto h-[calc(100vh-80px)] custom-scrollbar">
           <FiltersSidebar
             facets={facets}
             filters={filters}

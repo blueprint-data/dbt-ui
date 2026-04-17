@@ -1,9 +1,17 @@
 {
     "name": "@dbt-ui/core",
     "version": "0.0.1",
+    "private": true,
     "type": "module",
     "main": "src/index.ts",
+    "types": "src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "default": "./src/index.ts"
+        }
+    },
     "dependencies": {
-        "better-sqlite3": "^11.0.0"
+        "sql.js": "^1.13.0"
     }
 }

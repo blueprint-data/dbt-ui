@@ -17,5 +17,8 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "iconLibrary": "lucide"
+  "iconLibrary": "lucide",
+  "registries": {
+    "@blueprint": "https://blueprint-data.github.io/blueprintdata-ui/r/{name}.json"
+  }
 }

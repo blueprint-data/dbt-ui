@@ -31,10 +31,10 @@ import type { ModelDetail, ModelSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const materializationColors: Record<string, string> = {
-  table: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  view: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  incremental: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
-  ephemeral: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  table: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  view: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  incremental: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+  ephemeral: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
 };
 
 export default function ModelDetailPage() {
@@ -124,11 +124,11 @@ export default function ModelDetailPage() {
       <AppShell selectedModelId={decodedId}>
         <div className="p-4 md:p-6">
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="rounded-full bg-red-50 p-4 mb-4">
+            <div className="rounded-full bg-red-500/10 p-4 mb-4">
               <FileCode className="h-8 w-8 text-red-500" />
             </div>
-            <h1 className="text-xl font-semibold mb-2 text-slate-900">Model Not Found</h1>
-            <p className="text-slate-600 mb-4 max-w-md">
+            <h1 className="text-xl font-semibold mb-2 text-foreground">Model Not Found</h1>
+            <p className="text-muted-foreground mb-4 max-w-md">
               {error || "The model you're looking for doesn't exist or has been removed."}
             </p>
             <Button asChild className="bg-sky-500 hover:bg-sky-600 text-white">
@@ -151,11 +151,11 @@ export default function ModelDetailPage() {
       package_name: model.package_name,
       materialization: model.materialization,
       resource_type: model.resource_type,
-      tags: model.tags,
+      tags: model.tags || [],
       description: model.description,
     },
-    ...lineage.upstream,
-    ...lineage.downstream,
+    ...(lineage.upstream || []),
+    ...(lineage.downstream || []),
   ] : [];
 
   return (
@@ -165,25 +165,25 @@ export default function ModelDetailPage() {
       graphOpen={isGraphOpen}
       onGraphOpenChange={setIsGraphOpen}
     >
-      <div className="p-6 md:p-8 max-w-[1400px] mx-auto animate-in-up">
+      <div className="p-6 md:p-8 max-w-[1400px] mx-auto page-transition">
         {/* Navigation / Header Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-6 relative">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 dark:border-slate-800 pb-6 relative">
           {/* Progress / Decoration Bar to match image */}
-          <div className="absolute -bottom-[1px] left-0 w-32 h-[3px] bg-slate-200 rounded-full hidden md:block" />
+          <div className="absolute -bottom-[1px] left-0 w-32 h-[3px] bg-sky-500 rounded-full hidden md:block" />
 
           <div className="flex items-center gap-4 overflow-hidden">
-            <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-slate-400 shrink-0">
-              <span className="text-slate-300 font-mono text-sm leading-none pt-1">..</span>
+            <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground shrink-0">
+              <span className="text-muted-foreground/30 font-mono text-sm leading-none pt-1">..</span>
 
-              <div className="flex items-center gap-2 hover:text-slate-600 transition-colors cursor-default">
-                <Waypoints className="h-4 w-4 text-slate-300" />
+              <div className="flex items-center gap-2 hover:text-foreground transition-colors cursor-default">
+                <Waypoints className="h-4 w-4 text-muted-foreground/40" />
                 <span>{model.schema}</span>
               </div>
             </div>
 
             <div className={cn(
               "flex items-center gap-2 px-4 py-1.5 rounded-3xl border shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-all animate-in zoom-in-95 duration-300",
-              materializationColors[model.materialization] || "bg-slate-50 border-slate-200 text-slate-700"
+              materializationColors[model.materialization] || "bg-muted border-border text-foreground"
             )}>
               <FileCode className="h-3.5 w-3.5" />
               <span className="text-xs font-black tracking-widest leading-none truncate max-w-[200px]">{model.name}</span>
@@ -193,7 +193,7 @@ export default function ModelDetailPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all rounded-full"
+            className="h-10 w-10 text-muted-foreground hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all rounded-full"
             onClick={() => setIsGraphOpen(true)}
             title="Locate in Graph"
           >
@@ -206,51 +206,51 @@ export default function ModelDetailPage() {
           <div className="flex-1 min-w-0">
             {/* Title Section (Simplified) */}
             <div className="mb-8">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-4 tracking-tight break-all leading-none">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-4 tracking-tight break-all leading-none">
                 {model.name}
               </h1>
-              <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-3xl">
-                {model.description ? model.description.split('.')[0] + '.' : "A data model in the " + model.schema + " schema."}
+              <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-3xl">
+                {getDescriptionPreview(model.description, model.schema)}
               </p>
             </div>
 
             {/* Tabs */}
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="w-full justify-start border-b border-slate-200 rounded-none h-auto p-0 bg-transparent overflow-x-auto gap-8">
+              <TabsList className="w-full justify-start border-b border-border/60 rounded-none h-auto p-0 bg-transparent overflow-x-auto gap-6 md:gap-8 custom-scrollbar pb-px flex-nowrap">
                 <TabsTrigger
                   value="overview"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 text-slate-500 py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-slate-800"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Overview
                 </TabsTrigger>
                 <TabsTrigger
                   value="columns"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 text-slate-500 py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-slate-800"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Columns
-                  <span className="ml-2 font-mono text-slate-400 font-normal">{model.columns.length}</span>
+                  <span className="ml-2 font-mono text-muted-foreground/60 font-normal">{(model.columns || []).length}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="upstream"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 text-slate-500 py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-slate-800"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Upstream
                   {!lineageLoading && (
-                    <span className="ml-2 font-mono text-slate-400 font-normal">{lineage.upstream.length}</span>
+                    <span className="ml-2 font-mono text-muted-foreground/60 font-normal">{(lineage.upstream || []).length}</span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="downstream"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 text-slate-500 py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-slate-800"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Downstream
                   {!lineageLoading && (
-                    <span className="ml-2 font-mono text-slate-400 font-normal">{lineage.downstream.length}</span>
+                    <span className="ml-2 font-mono text-muted-foreground/60 font-normal">{(lineage.downstream || []).length}</span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="code"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 text-slate-500 py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-slate-800"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-sky-500 data-[state=active]:bg-transparent data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400 text-muted-foreground py-4 px-0 text-xs font-bold uppercase tracking-widest transition-all hover:text-foreground whitespace-nowrap shrink-0"
                 >
                   Code
                 </TabsTrigger>
@@ -262,9 +262,9 @@ export default function ModelDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="columns" className="mt-0">
-                  <div className="rounded-2xl border border-sky-100 bg-white shadow-sm overflow-hidden">
+                  <div className="rounded-2xl border border-sky-100 dark:border-slate-800 bg-card shadow-sm overflow-hidden">
                     <ColumnsTable
-                      columns={model.columns}
+                      columns={model.columns || []}
                       highlightColumn={highlightColumn || undefined}
                     />
                   </div>
@@ -272,7 +272,7 @@ export default function ModelDetailPage() {
 
                 <TabsContent value="upstream" className="mt-0">
                   <LineageList
-                    models={lineage.upstream}
+                    models={lineage.upstream || []}
                     direction="upstream"
                     isLoading={lineageLoading}
                   />
@@ -280,14 +280,14 @@ export default function ModelDetailPage() {
 
                 <TabsContent value="downstream" className="mt-0">
                   <LineageList
-                    models={lineage.downstream}
+                    models={lineage.downstream || []}
                     direction="downstream"
                     isLoading={lineageLoading}
                   />
                 </TabsContent>
 
                 <TabsContent value="code" className="mt-0">
-                  <div className="rounded-2xl border border-sky-100 bg-white shadow-sm overflow-hidden">
+                  <div className="rounded-2xl border border-sky-100 dark:border-slate-800 bg-card shadow-sm overflow-hidden">
                     <CodeViewer
                       rawCode={model.raw_code}
                       compiledCode={model.compiled_code}
@@ -302,13 +302,13 @@ export default function ModelDetailPage() {
           <aside className="lg:w-72 shrink-0">
             <div className="sticky top-24 space-y-6">
               {/* Quick Actions */}
-              <div className="bg-white border border-sky-100 rounded-2xl p-6 space-y-4 shadow-sm">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600">Quick Actions</h3>
+              <div className="bg-card border border-sky-100 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Quick Actions</h3>
                 <div className="space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start gap-3 bg-slate-50 border-slate-200 hover:bg-white hover:border-sky-200 hover:text-sky-600 transition-all h-10 text-xs font-bold uppercase tracking-wider text-slate-600"
+                    className="w-full justify-start gap-3 bg-muted border-border hover:bg-card hover:border-sky-200 dark:hover:border-sky-900 hover:text-sky-600 dark:hover:text-sky-400 transition-all h-10 text-xs font-bold uppercase tracking-wider text-muted-foreground"
                     onClick={handleOpenNewTab}
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -317,7 +317,7 @@ export default function ModelDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start gap-3 bg-slate-50 border-slate-200 hover:bg-white hover:border-sky-200 hover:text-sky-600 transition-all h-10 text-xs font-bold uppercase tracking-wider text-slate-600"
+                    className="w-full justify-start gap-3 bg-muted border-border hover:bg-card hover:border-sky-200 dark:hover:border-sky-900 hover:text-sky-600 dark:hover:text-sky-400 transition-all h-10 text-xs font-bold uppercase tracking-wider text-muted-foreground"
                     onClick={handleCopyId}
                   >
                     {copied ? (
@@ -336,28 +336,28 @@ export default function ModelDetailPage() {
               </div>
 
               {/* Lineage Summary */}
-              <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 mb-5">Graph Summary</h3>
+              <div className="bg-card border border-sky-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400 mb-5">Graph Summary</h3>
                 {lineageLoading ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-full bg-slate-100" />
-                    <Skeleton className="h-4 w-full bg-slate-100" />
+                    <Skeleton className="h-4 w-full bg-muted" />
+                    <Skeleton className="h-4 w-full bg-muted" />
                   </div>
                 ) : (
                   <div className="space-y-4 text-sm">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <span className="text-slate-500 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border">
+                      <span className="text-muted-foreground flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
                         <ArrowUpRight className="h-4 w-4 text-sky-500" />
                         Upstream
                       </span>
-                      <span className="font-mono font-bold text-lg text-slate-900">{lineage.upstream.length}</span>
+                      <span className="font-mono font-bold text-lg text-foreground">{lineage.upstream.length}</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <span className="text-slate-500 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border">
+                      <span className="text-muted-foreground flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
                         <ArrowDownRight className="h-4 w-4 text-sky-500" />
                         Downstream
                       </span>
-                      <span className="font-mono font-bold text-lg text-slate-900">{lineage.downstream.length}</span>
+                      <span className="font-mono font-bold text-lg text-foreground">{lineage.downstream.length}</span>
                     </div>
                   </div>
                 )}
@@ -377,18 +377,22 @@ function OverviewTab({ model }: { model: ModelDetail }) {
       <section>
         <div className="flex items-center gap-3 mb-6">
           <Info className="h-4 w-4 text-sky-500" />
-          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600">Project Description</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Project Description</h3>
         </div>
-        <p className="text-lg text-slate-700 leading-relaxed font-medium">
-          {model.description || "No description provided for this model asset."}
-        </p>
+        {model.description ? (
+          <DescriptionContent description={model.description} />
+        ) : (
+          <p className="text-lg text-foreground leading-relaxed font-medium">
+            No description provided for this model asset.
+          </p>
+        )}
       </section>
 
       {/* Details Grid */}
       <section>
         <div className="flex items-center gap-3 mb-6">
           <GitBranch className="h-4 w-4 text-sky-500" />
-          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600">Deployment Context</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Deployment Context</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <DetailItem label="Path" value={model.path} mono />
@@ -401,21 +405,21 @@ function OverviewTab({ model }: { model: ModelDetail }) {
       </section>
 
       {/* Meta */}
-      {Object.keys(model.meta).length > 0 && (
+      {model.meta && Object.keys(model.meta).length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-6">
             <Code className="h-4 w-4 text-sky-500" />
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600">Metadata Properties</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Metadata Properties</h3>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
             <table className="w-full">
-              <tbody className="divide-y divide-slate-100">
-                {Object.entries(model.meta).map(([key, value]) => (
-                  <tr key={key} className="group transition-colors hover:bg-slate-50">
-                    <td className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-1/3">
+              <tbody className="divide-y divide-border/60">
+                {Object.entries(model.meta || {}).map(([key, value]) => (
+                  <tr key={key} className="group transition-colors hover:bg-muted/40">
+                    <td className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground w-1/3">
                       {key}
                     </td>
-                    <td className="px-6 py-4 text-sm font-mono text-slate-700 group-hover:text-slate-900">
+                    <td className="px-6 py-4 text-sm font-mono text-foreground/80 group-hover:text-foreground">
                       {String(value)}
                     </td>
                   </tr>
@@ -427,21 +431,195 @@ function OverviewTab({ model }: { model: ModelDetail }) {
       )}
 
       {/* Tags */}
-      {model.tags.length > 0 && (
+      {(model.tags || []).length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-6">
             <GitBranch className="h-4 w-4 text-sky-500" />
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600">Assigned Tags</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Assigned Tags</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            {model.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider hover:bg-sky-50 hover:text-sky-700 transition-all cursor-default">
+            {(model.tags || []).map((tag) => (
+              <Badge key={tag} variant="secondary" className="px-4 py-1.5 rounded-full bg-muted border border-border text-muted-foreground text-[10px] font-bold uppercase tracking-wider hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:text-sky-700 dark:hover:text-sky-400 transition-all cursor-default">
                 {tag}
               </Badge>
             ))}
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+type DescriptionBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "list"; items: string[] }
+  | { type: "code"; language?: string; content: string };
+
+function getDescriptionPreview(description: string | null | undefined, schema: string) {
+  if (!description?.trim()) {
+    return `A data model in the ${schema} schema.`;
+  }
+
+  const plainText = description
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!plainText) {
+    return `A data model in the ${schema} schema.`;
+  }
+
+  const sentenceMatch = plainText.match(/.*?[.!?](?:\s|$)/);
+  const firstSentence = sentenceMatch ? sentenceMatch[0].trim() : plainText;
+
+  return firstSentence.length > 220 ? `${firstSentence.slice(0, 217)}...` : firstSentence;
+}
+
+function parseDescriptionBlocks(description: string): DescriptionBlock[] {
+  const normalized = description.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  const blocks: DescriptionBlock[] = [];
+  const codeFenceRegex = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
+
+  const pushTextBlocks = (rawText: string) => {
+    const chunks = rawText
+      .split(/\n{2,}/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean);
+
+    for (const chunk of chunks) {
+      const lines = chunk
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .filter((line) => line.trim().length > 0);
+
+      if (!lines.length) continue;
+
+      const isBulletLine = (line: string) => /^\s*[-*]\s+/.test(line);
+
+      if (lines.every(isBulletLine)) {
+        blocks.push({
+          type: "list",
+          items: lines.map((line) => line.replace(/^\s*[-*]\s+/, "").trim()),
+        });
+        continue;
+      }
+
+      if (lines.length > 1 && !isBulletLine(lines[0]) && lines.slice(1).every(isBulletLine)) {
+        blocks.push({ type: "paragraph", text: lines[0] });
+        blocks.push({
+          type: "list",
+          items: lines.slice(1).map((line) => line.replace(/^\s*[-*]\s+/, "").trim()),
+        });
+        continue;
+      }
+
+      blocks.push({ type: "paragraph", text: lines.join("\n") });
+    }
+  };
+
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = codeFenceRegex.exec(normalized)) !== null) {
+    const [fullMatch, language, code] = match;
+
+    if (match.index > cursor) {
+      pushTextBlocks(normalized.slice(cursor, match.index));
+    }
+
+    blocks.push({
+      type: "code",
+      language: language || undefined,
+      content: (code || "").trimEnd(),
+    });
+
+    cursor = match.index + fullMatch.length;
+  }
+
+  if (cursor < normalized.length) {
+    pushTextBlocks(normalized.slice(cursor));
+  }
+
+  return blocks;
+}
+
+function renderInlineMarkdown(text: string) {
+  return text
+    .split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+    .filter(Boolean)
+    .map((token, index) => {
+      if (token.startsWith("**") && token.endsWith("**")) {
+        return (
+          <strong key={index} className="font-semibold text-foreground">
+            {token.slice(2, -2)}
+          </strong>
+        );
+      }
+
+      if (token.startsWith("`") && token.endsWith("`")) {
+        return (
+          <code
+            key={index}
+            className="rounded-md border border-sky-200/80 dark:border-sky-900/60 bg-sky-50/70 dark:bg-sky-950/30 px-1.5 py-0.5 font-mono text-[0.9em] text-sky-700 dark:text-sky-300"
+          >
+            {token.slice(1, -1)}
+          </code>
+        );
+      }
+
+      return <span key={index}>{token}</span>;
+    });
+}
+
+function DescriptionContent({ description }: { description: string }) {
+  const blocks = parseDescriptionBlocks(description);
+
+  if (!blocks.length) {
+    return <p className="text-lg text-foreground leading-relaxed font-medium">No description provided for this model asset.</p>;
+  }
+
+  return (
+    <div className="space-y-5">
+      {blocks.map((block, index) => {
+        if (block.type === "paragraph") {
+          return (
+            <p key={`paragraph-${index}`} className="text-base sm:text-lg text-foreground leading-relaxed whitespace-pre-line">
+              {renderInlineMarkdown(block.text)}
+            </p>
+          );
+        }
+
+        if (block.type === "list") {
+          return (
+            <ul key={`list-${index}`} className="space-y-2 pl-6 list-disc marker:text-sky-500">
+              {block.items.map((item, itemIndex) => (
+                <li key={`item-${index}-${itemIndex}`} className="text-base sm:text-lg text-foreground leading-relaxed">
+                  {renderInlineMarkdown(item)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <div key={`code-${index}`} className="rounded-2xl border border-border bg-slate-950 dark:bg-slate-900 overflow-hidden shadow-sm">
+            {block.language && (
+              <div className="border-b border-slate-800/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                {block.language}
+              </div>
+            )}
+            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-100">
+              <code className="font-mono">{block.content}</code>
+            </pre>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -456,9 +634,9 @@ function DetailItem({
   mono?: boolean;
 }) {
   return (
-    <div className="group rounded-2xl p-5 bg-white border border-slate-200 shadow-sm hover:border-sky-200 hover:shadow-md transition-all">
-      <dt className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-3 group-hover:text-sky-500 transition-colors">{label}</dt>
-      <dd className={cn("text-sm font-bold text-slate-900 truncate", mono && "font-mono text-xs text-slate-600")}>
+    <div className="group stat-card rounded-2xl p-5 bg-card border border-border shadow-sm hover:border-sky-200 dark:hover:border-sky-900 hover:shadow-md transition-all">
+      <dt className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3 group-hover:text-sky-500 transition-colors">{label}</dt>
+      <dd className={cn("text-sm font-bold text-foreground truncate", mono && "font-mono text-xs text-muted-foreground")}>
         {value}
       </dd>
     </div>

@@ -1,11 +1,44 @@
 {
-    "name": "dbt-ui",
-    "version": "0.0.1",
-    "type": "module",
-    "bin": {
-        "dbt-ui": "src/index.ts"
-    },
-    "dependencies": {
-        "@dbt-ui/core": "workspace:0.0.1"
-    }
+  "name": "@blueprint-data/dbt-ui",
+  "version": "0.1.0",
+  "description": "Modern documentation viewer for dbt projects",
+  "type": "module",
+  "bin": {
+    "dbt-ui": "./bin/dbt-ui.js"
+  },
+  "files": [
+    "bin",
+    "web-app",
+    "node_modules"
+  ],
+  "keywords": [
+    "dbt",
+    "documentation",
+    "data",
+    "analytics",
+    "lineage",
+    "sql"
+  ],
+  "author": "Juan Pablo Rivero",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blueprint-data/dbt-ui.git"
+  },
+  "homepage": "https://github.com/blueprint-data/dbt-ui",
+  "bugs": {
+    "url": "https://github.com/blueprint-data/dbt-ui/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "cp ../../README.md ./README.md"
+  },
+  "dependencies": {
+    "sql.js": "^1.13.0"
+  }
 }

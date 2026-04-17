@@ -11,36 +11,32 @@ export async function GET(req: Request) {
     return NextResponse.json({ results: [] });
   }
 
-  const db = getDb();
+  const db = await getDb();
 
   try {
-    const results = db
-      .prepare(
-        `
-      SELECT
+    const searchTerm = `%${q.toLowerCase()}%`;
+    const results = db.all(
+      `SELECT
         doc_type,
         doc_id,
         model_unique_id,
         name,
         description
-      FROM search_fts
-      WHERE search_fts MATCH ?
-      LIMIT 50
-    `
-      )
-      .all(q) as Array<{
-        doc_type: string;
-        doc_id: string;
-        model_unique_id: string;
-        name: string;
-        description?: string;
-      }>;
+      FROM search_docs
+      WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR LOWER(tags) LIKE ?
+      LIMIT 50`,
+      [searchTerm, searchTerm, searchTerm]
+    ) as Array<{
+      doc_type: string;
+      doc_id: string;
+      model_unique_id: string;
+      name: string;
+      description?: string;
+    }>;
 
     return NextResponse.json({ results });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
-  } finally {
-    db.close();
   }
 }

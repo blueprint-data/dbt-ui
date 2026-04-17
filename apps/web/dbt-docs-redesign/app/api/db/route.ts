@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { openDb } from "@/lib/server/db";
+import { openDb, getDbPath } from "@/lib/server/db";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const { db, dbPath } = openDb();
+    const { db, dbPath } = await openDb();
 
     try {
-      const row = db.prepare("SELECT 1 as ok").get() as { ok?: number };
+      const row = db.get("SELECT 1 as ok") as { ok?: number };
       return NextResponse.json({ ok: row?.ok === 1, dbPath });
     } finally {
       db.close();

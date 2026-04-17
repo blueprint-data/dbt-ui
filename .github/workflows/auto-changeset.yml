@@ -1,0 +1,76 @@
+name: Auto Changeset
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  auto-changeset:
+    name: Create changeset from PR title
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.pull_request.title, 'Version Packages')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse PR title and create changeset
+        id: auto_changeset
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          CHANGESET_FILE=".changeset/pr-${PR_NUMBER}.md"
+
+          if [ -f "$CHANGESET_FILE" ]; then
+            echo "Changeset already exists, skipping."
+            exit 0
+          fi
+
+          # Detect bump type — breaking change takes priority
+          if echo "$PR_TITLE" | grep -qE '^[a-z]+(\([^)]+\))?!:'; then
+            BUMP="major"
+          elif echo "$PR_TITLE" | grep -qE '^feat(\([^)]+\))?:'; then
+            BUMP="minor"
+          elif echo "$PR_TITLE" | grep -qE '^(fix|perf|refactor|docs|chore|style|test|ci|build)(\([^)]+\))?:'; then
+            BUMP="patch"
+          else
+            echo "No conventional commit prefix found. Skipping."
+            exit 0
+          fi
+
+          DESCRIPTION=$(echo "$PR_TITLE" | sed -E 's/^[a-z]+(\([^)]+\))?!?: //')
+
+          cat > "$CHANGESET_FILE" <<EOF
+---
+"@blueprint-data/dbt-ui": $BUMP
+---
+
+$DESCRIPTION
+EOF
+
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "file=$CHANGESET_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push changeset
+        if: steps.auto_changeset.outputs.created == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BUMP: ${{ steps.auto_changeset.outputs.bump }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ".changeset/pr-${PR_NUMBER}.md"
+          git commit -m "chore: add auto changeset [${BUMP}]"
+          git push
