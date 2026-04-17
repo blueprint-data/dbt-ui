@@ -2,7 +2,7 @@ import nextConfig from 'eslint-config-next/core-web-vitals';
 
 const config = Array.isArray(nextConfig) ? nextConfig : [nextConfig];
 
-export default [
+const eslintConfig = [
   ...config,
   {
     rules: {
@@ -13,3 +13,5 @@ export default [
     },
   },
 ];
+
+export default eslintConfig;

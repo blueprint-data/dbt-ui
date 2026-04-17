@@ -2,6 +2,7 @@
 
 import React from "react"
 
+import Image from "next/image";
 import Link from "next/link";
 import { SearchBar } from "./search-bar";
 import { ThemeToggle } from "./theme-toggle";
@@ -17,9 +18,11 @@ export function Header({ children }: HeaderProps) {
       <div className="flex h-16 items-center gap-6 px-6">
         {children}
         <Link href="/" className="flex items-center gap-3 font-bold tracking-tight shrink-0 transition-all hover:opacity-70">
-          <img
+          <Image
             src="/blue-logo.png"
             alt="dbt Docs Logo"
+            width={40}
+            height={40}
             className="h-10 w-auto"
           />
           <div className="flex flex-col">
