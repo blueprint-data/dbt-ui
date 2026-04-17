@@ -29,6 +29,66 @@ Para que GitHub Actions tenga permisos para subir el paquete oficial (`@blueprin
 
 ---
 
+## 🔐 Granular Access Token
+
+**Objetivo:** Explicar al equipo el concepto de tokens de acceso granular y solicitar autorización para generar y usar un token de publicación en NPM.
+
+### ¿Qué es un Granular Access Token?
+- Permite definir permisos finamente ajustados por paquete y organización.
+- Ideal para CI/CD: evita el uso de credenciales de usuario y reduce superficie de ataque.
+- Soporta restricciones de IP y expiración programada.
+
+### Beneficios para nuestro proyecto
+- **Seguridad:** Sólo el scope `@blueprint-data` y los paquetes específicos pueden ser publicados.
+- **Auditoría:** Cada token tiene un nombre descriptivo y una fecha de expiración, facilitando el tracking.
+- **Flexibilidad:** Podemos revocar o rotar tokens sin afectar a los desarrolladores locales.
+
+### Pasos para crear el token (una sola vez)
+1. Ingresar a <https://www.npmjs.com> con la cuenta propietaria del scope `@blueprint-data`.
+2. Ir a **Access Tokens → Automation Tokens** y crear uno nuevo.
+3. Asignar un nombre descriptivo, por ejemplo `ci-publish-dbtu`.
+4. Seleccionar los permisos:
+   - **Read and Publish** para el paquete `@blueprint-data/dbt-ui`.
+   - Opcional: **Read** para otros paquetes del scope si se usan en el monorepo.
+5. Configurar **IP Ranges** si se desea limitar a nuestras runners CI (ej. `203.0.113.0/24`).
+6. Definir una **Expiration Date** (ej. 90 días) y anotar la fecha.
+7. Copiar el token generado.
+
+### Integración en GitHub Actions
+```yaml
+name: Release
+on:
+  push:
+    branches: [main]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build package
+        run: ./scripts/build-npm.sh
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./packages/cli
+```
+
+### Solicitud al equipo
+- **Aprobación** para crear el token `ci-publish-dbtu` con los permisos descritos.
+- **Agregar** el secret `NPM_TOKEN` en **GitHub → Settings → Secrets and variables → Actions**.
+- **Definir** política de rotación (ej. cada 90 días) y asignar responsable de renovación.
+
+> **Nota:** Sin este token, el pipeline de *Release* fallará al intentar publicar la versión oficial en NPM.
+
+---
+
 ## 📦 Flujo de Desarrollo y Publicación
 
 Al utilizar [Changesets](https://github.com/changesets/changesets), el proceso del día a día para publicar un nuevo "feature" o parche es transparente.

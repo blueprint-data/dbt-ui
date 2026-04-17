@@ -81,7 +81,7 @@ Core library for processing dbt manifest files and building a SQLite database fo
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `model` | All dbt models/seeds/snapshots | `unique_id`, `name`, `resource_type`, `schema_name`, `materialized`, `tags_json` |
+| `model` | All dbt models/seeds/snapshots | `unique_id`, `name`, `resource_type`, `schema_name`, `materialized`, `tags_json`, `raw_code`, `compiled_code` |
 | `column_def` | Column definitions per model | `model_unique_id`, `name`, `description` |
 | `edge` | DAG dependencies between models | `src_unique_id`, `dst_unique_id`, `edge_type` |
 | `search_docs` | Search index for models + columns | `doc_type`, `name`, `description`, `tags` |

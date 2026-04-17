@@ -31,6 +31,18 @@ function pickMaterialized(node: DbtNode): string | null {
     return typeof m === "string" ? m : null;
 }
 
+function pickSqlText(value: unknown): string | null {
+    return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function pickRawCode(node: DbtNode): string | null {
+    return pickSqlText(node.raw_code) ?? pickSqlText(node.raw_sql);
+}
+
+function pickCompiledCode(node: DbtNode): string | null {
+    return pickSqlText(node.compiled_code) ?? pickSqlText(node.compiled_sql);
+}
+
 function insertModels(db: Db, nodes: DbtNode[]) {
     const rows = nodes.map((n) => [
         n.unique_id,
@@ -46,6 +58,8 @@ function insertModels(db: Db, nodes: DbtNode[]) {
         safeJson(normalizeTags(n.tags)),
         safeJson(n.meta),
         safeJson(n.config),
+        pickRawCode(n),
+        pickCompiledCode(n),
     ]);
 
     db.transaction(() => {
@@ -53,8 +67,8 @@ function insertModels(db: Db, nodes: DbtNode[]) {
             db.run(
                 `INSERT INTO model (
                     unique_id, name, resource_type, package_name, path, database_name, schema_name,
-                    alias, materialized, description, tags_json, meta_json, config_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    alias, materialized, description, tags_json, meta_json, config_json, raw_code, compiled_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 r
             );
         }

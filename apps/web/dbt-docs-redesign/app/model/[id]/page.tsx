@@ -210,7 +210,7 @@ export default function ModelDetailPage() {
                 {model.name}
               </h1>
               <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-3xl">
-                {model.description ? (model.description.includes('.') ? model.description.split('.')[0] + '.' : model.description) : "A data model in the " + model.schema + " schema."}
+                {getDescriptionPreview(model.description, model.schema)}
               </p>
             </div>
 
@@ -379,9 +379,13 @@ function OverviewTab({ model }: { model: ModelDetail }) {
           <Info className="h-4 w-4 text-sky-500" />
           <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Project Description</h3>
         </div>
-        <p className="text-lg text-foreground leading-relaxed font-medium">
-          {model.description || "No description provided for this model asset."}
-        </p>
+        {model.description ? (
+          <DescriptionContent description={model.description} />
+        ) : (
+          <p className="text-lg text-foreground leading-relaxed font-medium">
+            No description provided for this model asset.
+          </p>
+        )}
       </section>
 
       {/* Details Grid */}
@@ -442,6 +446,180 @@ function OverviewTab({ model }: { model: ModelDetail }) {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+type DescriptionBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "list"; items: string[] }
+  | { type: "code"; language?: string; content: string };
+
+function getDescriptionPreview(description: string | null | undefined, schema: string) {
+  if (!description?.trim()) {
+    return `A data model in the ${schema} schema.`;
+  }
+
+  const plainText = description
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!plainText) {
+    return `A data model in the ${schema} schema.`;
+  }
+
+  const sentenceMatch = plainText.match(/.*?[.!?](?:\s|$)/);
+  const firstSentence = sentenceMatch ? sentenceMatch[0].trim() : plainText;
+
+  return firstSentence.length > 220 ? `${firstSentence.slice(0, 217)}...` : firstSentence;
+}
+
+function parseDescriptionBlocks(description: string): DescriptionBlock[] {
+  const normalized = description.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  const blocks: DescriptionBlock[] = [];
+  const codeFenceRegex = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
+
+  const pushTextBlocks = (rawText: string) => {
+    const chunks = rawText
+      .split(/\n{2,}/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean);
+
+    for (const chunk of chunks) {
+      const lines = chunk
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .filter((line) => line.trim().length > 0);
+
+      if (!lines.length) continue;
+
+      const isBulletLine = (line: string) => /^\s*[-*]\s+/.test(line);
+
+      if (lines.every(isBulletLine)) {
+        blocks.push({
+          type: "list",
+          items: lines.map((line) => line.replace(/^\s*[-*]\s+/, "").trim()),
+        });
+        continue;
+      }
+
+      if (lines.length > 1 && !isBulletLine(lines[0]) && lines.slice(1).every(isBulletLine)) {
+        blocks.push({ type: "paragraph", text: lines[0] });
+        blocks.push({
+          type: "list",
+          items: lines.slice(1).map((line) => line.replace(/^\s*[-*]\s+/, "").trim()),
+        });
+        continue;
+      }
+
+      blocks.push({ type: "paragraph", text: lines.join("\n") });
+    }
+  };
+
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = codeFenceRegex.exec(normalized)) !== null) {
+    const [fullMatch, language, code] = match;
+
+    if (match.index > cursor) {
+      pushTextBlocks(normalized.slice(cursor, match.index));
+    }
+
+    blocks.push({
+      type: "code",
+      language: language || undefined,
+      content: (code || "").trimEnd(),
+    });
+
+    cursor = match.index + fullMatch.length;
+  }
+
+  if (cursor < normalized.length) {
+    pushTextBlocks(normalized.slice(cursor));
+  }
+
+  return blocks;
+}
+
+function renderInlineMarkdown(text: string) {
+  return text
+    .split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+    .filter(Boolean)
+    .map((token, index) => {
+      if (token.startsWith("**") && token.endsWith("**")) {
+        return (
+          <strong key={index} className="font-semibold text-foreground">
+            {token.slice(2, -2)}
+          </strong>
+        );
+      }
+
+      if (token.startsWith("`") && token.endsWith("`")) {
+        return (
+          <code
+            key={index}
+            className="rounded-md border border-sky-200/80 dark:border-sky-900/60 bg-sky-50/70 dark:bg-sky-950/30 px-1.5 py-0.5 font-mono text-[0.9em] text-sky-700 dark:text-sky-300"
+          >
+            {token.slice(1, -1)}
+          </code>
+        );
+      }
+
+      return <span key={index}>{token}</span>;
+    });
+}
+
+function DescriptionContent({ description }: { description: string }) {
+  const blocks = parseDescriptionBlocks(description);
+
+  if (!blocks.length) {
+    return <p className="text-lg text-foreground leading-relaxed font-medium">No description provided for this model asset.</p>;
+  }
+
+  return (
+    <div className="space-y-5">
+      {blocks.map((block, index) => {
+        if (block.type === "paragraph") {
+          return (
+            <p key={`paragraph-${index}`} className="text-base sm:text-lg text-foreground leading-relaxed whitespace-pre-line">
+              {renderInlineMarkdown(block.text)}
+            </p>
+          );
+        }
+
+        if (block.type === "list") {
+          return (
+            <ul key={`list-${index}`} className="space-y-2 pl-6 list-disc marker:text-sky-500">
+              {block.items.map((item, itemIndex) => (
+                <li key={`item-${index}-${itemIndex}`} className="text-base sm:text-lg text-foreground leading-relaxed">
+                  {renderInlineMarkdown(item)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <div key={`code-${index}`} className="rounded-2xl border border-border bg-slate-950 dark:bg-slate-900 overflow-hidden shadow-sm">
+            {block.language && (
+              <div className="border-b border-slate-800/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                {block.language}
+              </div>
+            )}
+            <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-100">
+              <code className="font-mono">{block.content}</code>
+            </pre>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, Check, Maximize2, Minimize2, FileCode, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,9 +10,20 @@ interface CodeViewerProps {
 }
 
 export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
-  const [activeTab, setActiveTab] = useState<string>("source");
+  const hasRawCode = Boolean(rawCode?.trim());
+  const hasCompiledCode = Boolean(compiledCode?.trim());
+
+  const [activeTab, setActiveTab] = useState<string>(hasRawCode ? "source" : "compiled");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeTab === "source" && !hasRawCode && hasCompiledCode) {
+      setActiveTab("compiled");
+    } else if (activeTab === "compiled" && !hasCompiledCode && hasRawCode) {
+      setActiveTab("source");
+    }
+  }, [activeTab, hasRawCode, hasCompiledCode]);
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
@@ -28,9 +39,7 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
     }
   };
 
-  const currentCode = activeTab === "source" ? rawCode : compiledCode;
-
-  if (!rawCode && !compiledCode) {
+  if (!hasRawCode && !hasCompiledCode) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-xl bg-muted/20">
         <div className="rounded-full bg-muted p-5 mb-5 ring-1 ring-white/10 shadow-inner">
@@ -38,7 +47,7 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
         </div>
         <h3 className="font-bold text-foreground mb-2 text-lg">No code available</h3>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Source code is not available for this model context.
+          This SQLite file has no stored SQL for this model. Re-run <code className="font-mono">dbt-ui generate</code> with the latest version.
         </p>
       </div>
     );
@@ -52,10 +61,18 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
         <div className="flex items-center justify-between mb-4 shrink-0 bg-transparent">
           <TabsList className="h-10 p-1 bg-muted/40 border border-border/40 rounded-lg">
-            <TabsTrigger value="source" className="text-xs font-bold uppercase tracking-wider px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger
+              value="source"
+              disabled={!hasRawCode}
+              className="text-xs font-bold uppercase tracking-wider px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               Source
             </TabsTrigger>
-            <TabsTrigger value="compiled" className="text-xs font-bold uppercase tracking-wider px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger
+              value="compiled"
+              disabled={!hasCompiledCode}
+              className="text-xs font-bold uppercase tracking-wider px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               Compiled
             </TabsTrigger>
           </TabsList>
@@ -74,17 +91,37 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
         </div>
 
         <TabsContent value="source" className="mt-0 flex-1 min-h-0 relative group/codecontainer data-[state=active]:animate-in data-[state=active]:fade-in duration-300">
-          <CodeBlock code={rawCode} language="sql" isFullscreen={isFullscreen} />
+          <CodeBlock
+            code={rawCode}
+            language="sql"
+            isFullscreen={isFullscreen}
+            emptyMessage="Source SQL is not available for this model."
+          />
         </TabsContent>
         <TabsContent value="compiled" className="mt-0 flex-1 min-h-0 relative group/codecontainer data-[state=active]:animate-in data-[state=active]:fade-in duration-300">
-          <CodeBlock code={compiledCode} language="sql" isFullscreen={isFullscreen} />
+          <CodeBlock
+            code={compiledCode}
+            language="sql"
+            isFullscreen={isFullscreen}
+            emptyMessage="Compiled SQL is not available in the current SQLite database."
+          />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function CodeBlock({ code, language, isFullscreen }: { code?: string, language: string, isFullscreen: boolean }) {
+function CodeBlock({
+  code,
+  language,
+  isFullscreen,
+  emptyMessage,
+}: {
+  code?: string;
+  language: string;
+  isFullscreen: boolean;
+  emptyMessage: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -94,7 +131,18 @@ function CodeBlock({ code, language, isFullscreen }: { code?: string, language: 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!code) return null;
+  if (!code?.trim()) {
+    return (
+      <div
+        className={cn(
+          "w-full rounded-2xl border border-dashed border-border bg-muted/20 flex items-center justify-center px-6 text-center text-sm text-muted-foreground",
+          isFullscreen ? "h-[calc(100vh-140px)]" : "h-[600px]"
+        )}
+      >
+        {emptyMessage}
+      </div>
+    );
+  }
 
   const lines = code.split("\n");
 

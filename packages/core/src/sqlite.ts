@@ -196,7 +196,9 @@ export function initSchema(db: Db) {
       description TEXT,
       tags_json TEXT,
       meta_json TEXT,
-      config_json TEXT
+      config_json TEXT,
+      raw_code TEXT,
+      compiled_code TEXT
     );
 
     CREATE TABLE IF NOT EXISTS column_def (
