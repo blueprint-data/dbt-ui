@@ -120,7 +120,9 @@ async function generateInline(manifestPath, outputPath) {
             description TEXT,
             tags_json TEXT,
             meta_json TEXT,
-            config_json TEXT
+            config_json TEXT,
+            raw_code TEXT,
+            compiled_code TEXT
         );
         
         CREATE TABLE IF NOT EXISTS column_def (
@@ -168,8 +170,8 @@ async function generateInline(manifestPath, outputPath) {
     for (const model of models) {
         const tags = Array.isArray(model.tags) ? JSON.stringify(model.tags) : null;
         db.run(
-            `INSERT OR REPLACE INTO model (unique_id, name, resource_type, package_name, path, database_name, schema_name, alias, materialized, description, tags_json, meta_json, config_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT OR REPLACE INTO model (unique_id, name, resource_type, package_name, path, database_name, schema_name, alias, materialized, description, tags_json, meta_json, config_json, raw_code, compiled_code)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 model.unique_id,
                 model.name,
@@ -184,6 +186,16 @@ async function generateInline(manifestPath, outputPath) {
                 tags,
                 model.meta ? JSON.stringify(model.meta) : null,
                 model.config ? JSON.stringify(model.config) : null,
+                typeof model.raw_code === "string" && model.raw_code.length > 0
+                    ? model.raw_code
+                    : typeof model.raw_sql === "string" && model.raw_sql.length > 0
+                        ? model.raw_sql
+                        : null,
+                typeof model.compiled_code === "string" && model.compiled_code.length > 0
+                    ? model.compiled_code
+                    : typeof model.compiled_sql === "string" && model.compiled_sql.length > 0
+                        ? model.compiled_sql
+                        : null,
             ]
         );
 

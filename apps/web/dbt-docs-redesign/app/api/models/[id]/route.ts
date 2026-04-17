@@ -30,12 +30,20 @@ function parseJson(json: string | null | undefined, defaultValue: any = null): a
   }
 }
 
+function shouldUseCodeFallback(searchParams: URLSearchParams): boolean {
+  const queryOverride = searchParams.get("code_fallback");
+  const rawValue = queryOverride ?? process.env.DBT_UI_ENABLE_CODE_FALLBACK ?? "false";
+  return ["1", "true", "yes", "on"].includes(rawValue.toLowerCase());
+}
+
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Next.js 15+: params is now a Promise and must be awaited
   const { id } = await params;
+  const { searchParams } = new URL(req.url);
+  const useCodeFallback = shouldUseCodeFallback(searchParams);
   const db = await getDb();
 
   try {
@@ -58,14 +66,15 @@ export async function GET(
       [id]
     ) as Array<{ name: string; description?: string | null }>;
 
-    // FALLBACK GENERATOR:
-    // If the database (like test_repro.sqlite) is missing code columns, we simulate it
-    // so the UI doesn't look broken. In a real production DB, these values should exist.
-    const fallbackRawCode = `-- Raw SQL for ${model.name}
--- Note: usage of fallback simulation (DB missing raw_code)
+    const hasRawCode = typeof model.raw_code === "string" && model.raw_code.trim().length > 0;
+    const hasCompiledCode = typeof model.compiled_code === "string" && model.compiled_code.trim().length > 0;
+
+    const fallbackRawCode = useCodeFallback
+      ? `-- Raw SQL for ${model.name}
+-- Note: simulated fallback (raw_code missing in SQLite)
 
 WITH source_data AS (
-    SELECT * FROM ${model.schema_name || 'public'}.stg_${model.name.replace(/_/g, '')}
+    SELECT * FROM ${model.schema_name || "public"}.stg_${model.name.replace(/_/g, "")}
 ),
 
 transformed AS (
@@ -82,10 +91,12 @@ transformed AS (
     WHERE deleted_at IS NULL
 )
 
-SELECT * FROM transformed`;
+SELECT * FROM transformed`
+      : undefined;
 
-    const fallbackCompiledCode = `-- Compiled SQL for ${model.name}
--- Note: usage of fallback simulation (DB missing compiled_code)
+    const fallbackCompiledCode = useCodeFallback
+      ? `-- Compiled SQL for ${model.name}
+-- Note: simulated fallback (compiled_code missing in SQLite)
 
 SELECT
     id,
@@ -96,8 +107,12 @@ SELECT
         WHEN status = 'active' THEN 1
         ELSE 0
     END as is_active
-FROM ${model.database_name || 'analytics'}.${model.schema_name || 'public'}.stg_${model.name.replace(/_/g, '')}
-WHERE deleted_at IS NULL`;
+FROM ${model.database_name || "analytics"}.${model.schema_name || "public"}.stg_${model.name.replace(/_/g, "")}
+WHERE deleted_at IS NULL`
+      : undefined;
+
+    const rawCode = hasRawCode ? model.raw_code! : fallbackRawCode;
+    const compiledCode = hasCompiledCode ? model.compiled_code! : fallbackCompiledCode;
 
     // Parse JSON fields and map to ModelDetail interface
     return NextResponse.json({
@@ -116,10 +131,13 @@ WHERE deleted_at IS NULL`;
         name: col.name,
         description: col.description ?? undefined,
       })),
-      // UNIVERSAL COMPATIBILITY:
-      // Try DB first, then fallback to simulation.
-      raw_code: model.raw_code ?? fallbackRawCode,
-      compiled_code: model.compiled_code ?? fallbackCompiledCode,
+      raw_code: rawCode,
+      compiled_code: compiledCode,
+      code_fallback_used: {
+        enabled: useCodeFallback,
+        raw: useCodeFallback && !hasRawCode,
+        compiled: useCodeFallback && !hasCompiledCode,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

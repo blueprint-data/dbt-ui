@@ -17,6 +17,10 @@ export type DbtNode = {
     schema?: string;
     alias?: string;
     description?: string;
+    raw_code?: string;
+    compiled_code?: string;
+    raw_sql?: string;
+    compiled_sql?: string;
     tags?: string[];
     meta?: Record<string, JsonValue>;
     config?: Record<string, JsonValue>;

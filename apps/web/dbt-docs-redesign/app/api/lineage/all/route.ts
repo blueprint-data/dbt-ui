@@ -3,6 +3,8 @@ import { getDb } from "@/lib/server/db";
 
 export const runtime = "nodejs";
 
+type EdgeOrientation = "model_dep" | "dep_model";
+
 type RawModel = {
   unique_id: string;
   name: string;
@@ -25,11 +27,27 @@ function parseTags(json?: string | null): string[] {
   }
 }
 
+function resolveEdgeOrientation(searchParams: URLSearchParams): EdgeOrientation {
+  const requested = (
+    searchParams.get("edge_direction") ??
+    process.env.DBT_UI_EDGE_DIRECTION ??
+    "model_dep"
+  ).toLowerCase();
+
+  if (["dep_model", "dependency_model", "dependency-to-model", "reverse", "reversed"].includes(requested)) {
+    return "dep_model";
+  }
+
+  return "model_dep";
+}
+
 /**
  * Get complete project architecture - all nodes and edges
  * This endpoint is used for the global lineage graph view
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const edgeOrientation = resolveEdgeOrientation(searchParams);
   const db = await getDb();
 
   try {
@@ -42,8 +60,11 @@ export async function GET() {
 
     // Get ALL edges
     const edgeRows = db.all(
-      `SELECT src_unique_id as source, dst_unique_id as target
-       FROM edge`
+      edgeOrientation === "model_dep"
+        ? `SELECT src_unique_id as source, dst_unique_id as target
+           FROM edge`
+        : `SELECT dst_unique_id as source, src_unique_id as target
+           FROM edge`
     ) as Array<{ source: string; target: string }>;
 
     // Map models to graph nodes
@@ -74,6 +95,7 @@ export async function GET() {
       edges: edgeRows,
       models, // Full ModelSummary list for compatibility
       total: nodes.length,
+      edge_direction: edgeOrientation,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

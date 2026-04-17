@@ -4,15 +4,31 @@ import { getDb } from "@/lib/server/db";
 export const runtime = "nodejs";
 
 type GraphEdge = { source: string; target: string };
+type EdgeOrientation = "model_dep" | "dep_model";
 type RawModel = {
   unique_id: string;
   name: string;
+  description?: string | null;
   schema_name?: string | null;
   package_name?: string | null;
   materialized?: string | null;
   resource_type?: string | null;
   tags_json?: string | null;
 };
+
+function resolveEdgeOrientation(searchParams: URLSearchParams): EdgeOrientation {
+  const requested = (
+    searchParams.get("edge_direction") ??
+    process.env.DBT_UI_EDGE_DIRECTION ??
+    "model_dep"
+  ).toLowerCase();
+
+  if (["dep_model", "dependency_model", "dependency-to-model", "reverse", "reversed"].includes(requested)) {
+    return "dep_model";
+  }
+
+  return "model_dep";
+}
 
 function parseTags(json?: string | null): string[] {
   if (!json) return [];
@@ -34,6 +50,7 @@ export async function GET(
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const depth = Math.max(1, Math.min(4, Number(searchParams.get("depth") ?? 1) || 1));
+  const edgeOrientation = resolveEdgeOrientation(searchParams);
 
   const db = await getDb();
 
@@ -48,19 +65,27 @@ export async function GET(
     for (let d = 0; d < depth; d++) {
       const next: string[] = [];
 
-      for (const id of frontier) {
+      for (const frontierId of frontier) {
         const ups = db.all(
-          `SELECT e.src_unique_id as source, e.dst_unique_id as target
-           FROM edge e
-           WHERE e.src_unique_id = ?`,
-          [id]
+          edgeOrientation === "model_dep"
+            ? `SELECT e.src_unique_id as source, e.dst_unique_id as target
+               FROM edge e
+               WHERE e.src_unique_id = ?`
+            : `SELECT e.dst_unique_id as source, e.src_unique_id as target
+               FROM edge e
+               WHERE e.dst_unique_id = ?`,
+          [frontierId]
         ) as GraphEdge[];
 
         const downs = db.all(
-          `SELECT e.src_unique_id as source, e.dst_unique_id as target
-           FROM edge e
-           WHERE e.dst_unique_id = ?`,
-          [id]
+          edgeOrientation === "model_dep"
+            ? `SELECT e.src_unique_id as source, e.dst_unique_id as target
+               FROM edge e
+               WHERE e.dst_unique_id = ?`
+            : `SELECT e.dst_unique_id as source, e.src_unique_id as target
+               FROM edge e
+               WHERE e.src_unique_id = ?`,
+          [frontierId]
         ) as GraphEdge[];
 
         for (const e of [...ups, ...downs]) {
@@ -111,18 +136,28 @@ export async function GET(
 
     // Immediate upstream/downstream for detail lists
     const upstreamRows = db.all(
-      `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
-       FROM edge e
-       JOIN model m ON e.dst_unique_id = m.unique_id
-       WHERE e.src_unique_id = ?`,
+      edgeOrientation === "model_dep"
+        ? `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
+           FROM edge e
+           JOIN model m ON e.dst_unique_id = m.unique_id
+           WHERE e.src_unique_id = ?`
+        : `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
+           FROM edge e
+           JOIN model m ON e.src_unique_id = m.unique_id
+           WHERE e.dst_unique_id = ?`,
       [id]
     ) as RawModel[];
 
     const downstreamRows = db.all(
-      `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
-       FROM edge e
-       JOIN model m ON e.src_unique_id = m.unique_id
-       WHERE e.dst_unique_id = ?`,
+      edgeOrientation === "model_dep"
+        ? `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
+           FROM edge e
+           JOIN model m ON e.src_unique_id = m.unique_id
+           WHERE e.dst_unique_id = ?`
+        : `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
+           FROM edge e
+           JOIN model m ON e.dst_unique_id = m.unique_id
+           WHERE e.src_unique_id = ?`,
       [id]
     ) as RawModel[];
 
@@ -142,6 +177,7 @@ export async function GET(
       edges,
       upstream: upstreamRows.map(toSummary),
       downstream: downstreamRows.map(toSummary),
+      edge_direction: edgeOrientation,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
