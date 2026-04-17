@@ -36,31 +36,26 @@ For tighter security, use a Granular Access Token instead:
 - Set an expiration date (90 days recommended)
 - Add a descriptive name like `ci-publish-dbt-ui`
 
-This limits blast radius if the token is ever compromised.
-
 ---
 
 ## Release flow
 
-Versioning is managed by [Changesets](https://github.com/changesets/changesets) and is **fully automated** — no manual `pnpm changeset` needed.
+Versioning is managed by [Changesets](https://github.com/changesets/changesets).
 
-### How a release happens
+### Case 1 — Normal PR (fully automated)
+
+The happy path. Just follow conventional commits and everything is automatic.
 
 1. Open a PR with a title following [Conventional Commits](https://www.conventionalcommits.org/):
-   - `fix: ...` → patch release (0.1.0 → 0.1.1)
-   - `feat: ...` → minor release (0.1.0 → 0.2.0)
-   - `feat!: ...` or `BREAKING CHANGE` → major release (0.1.0 → 1.0.0)
+   - `fix: ...` → patch (0.1.0 → 0.1.1)
+   - `feat: ...` → minor (0.1.0 → 0.2.0)
+   - `feat!: ...` → major (0.1.0 → 1.0.0)
 
-2. The **Auto Changeset** workflow detects the prefix and commits a changeset file to your branch automatically.
+2. The **Auto Changeset** workflow detects the prefix and commits a `.changeset/*.md` file to your branch automatically.
 
-3. Merge to `main`. GitHub Actions detects the changeset and opens a **"Version Packages" PR** that bumps the version and updates `CHANGELOG.md`.
+3. Merge to `main`. Changesets detects the file and opens a **"Version Packages" PR**.
 
-4. Review and merge the "Version Packages" PR. This triggers the **Release** workflow which:
-   - Runs `./scripts/build-npm.sh` (builds standalone web app + copies README)
-   - Publishes `@blueprint-data/dbt-ui` to npm
-   - Creates a GitHub Release with the changelog
-
-### Summary
+4. Merge the "Version Packages" PR → npm publish + GitHub Release created.
 
 ```
 PR (feat: ...) → auto changeset committed
@@ -71,8 +66,52 @@ PR (feat: ...) → auto changeset committed
       ↓
   merge "Version Packages" PR
       ↓
-  npm publish + GitHub Release created
+  npm publish + GitHub Release
 ```
+
+---
+
+### Case 2 — Branch predates the Auto Changeset workflow
+
+The auto-changeset workflow only runs on PRs opened after it was added. If your branch existed before, no changeset file was created automatically.
+
+**Fix: create the changeset manually once.**
+
+```bash
+pnpm changeset
+```
+
+- Select `@blueprint-data/dbt-ui`
+- Choose bump type: `patch` for fixes, `minor` for new features, `major` for breaking changes
+- Write a short summary (goes into `CHANGELOG.md`)
+
+```bash
+git add .changeset/
+git commit -m "chore: add changeset"
+git push
+```
+
+From here the flow is identical to Case 1 — merge to main, wait for "Version Packages" PR, merge it.
+
+---
+
+### Case 3 — Hotfix or emergency publish
+
+If CI is broken and you need to ship immediately:
+
+```bash
+# 1. Build the package locally
+npm run build:npm
+
+# 2. Bump version manually
+cd packages/cli
+npm version patch   # or minor / major
+
+# 3. Publish
+npm publish --access public
+```
+
+> Only do this for genuine emergencies. Manual publishes skip the full build pipeline validation.
 
 ---
 
@@ -82,11 +121,11 @@ PR (feat: ...) → auto changeset committed
 # Build the full package
 npm run build:npm
 
-# Pack it (simulates what npm publish would include)
+# Simulate what npm publish would include
 cd packages/cli
 npm pack --dry-run
 
-# Install locally to test the CLI
+# Install locally and test the CLI
 npm pack
 npm install -g ./blueprint-data-dbt-ui-*.tgz
 dbt-ui serve --db /path/to/dbt_ui.sqlite
