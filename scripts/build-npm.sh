@@ -78,6 +78,9 @@ echo "  → Using existing CLI package.json for publish (managed by changesets)"
 echo "🔧 Making bin script executable..."
 chmod +x "$CLI_DIR/bin/dbt-ui.js"
 
+echo "📄 Copying README for npm..."
+cp "$ROOT_DIR/README.md" "$CLI_DIR/README.md"
+
 echo ""
 echo "✅ Build complete!"
 echo ""
