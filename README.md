@@ -13,14 +13,18 @@ A modern documentation viewer for dbt projects. Generates a fast SQLite database
 **Prerequisites:** Node.js 18+ and a dbt project with a `manifest.json`.
 
 ```bash
+npm i @blueprint-data/dbt-ui
+```
+
+```bash
 # 1. Generate the database from your manifest
-npx @blueprint-data/dbt-ui generate \
+npx dbt-ui generate \
   --manifest /absolute/path/to/target/manifest.json \
   --out ./dbt_ui.sqlite \
   --skip-dbt
 
 # 2. Serve the UI
-npx @blueprint-data/dbt-ui serve --db ./dbt_ui.sqlite
+npx dbt-ui serve --db ./dbt_ui.sqlite
 
 # 3. Open http://localhost:3000
 ```
