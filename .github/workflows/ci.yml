@@ -35,7 +35,8 @@ jobs:
         run: pnpm run setup:wasm
 
       - name: Lint
-        run: pnpm --filter dbt-docs-redesign exec next lint
+        working-directory: apps/web/dbt-docs-redesign
+        run: pnpm run lint
 
       - name: Build web app
         run: pnpm --filter dbt-docs-redesign build
