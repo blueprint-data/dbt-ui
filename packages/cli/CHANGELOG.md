@@ -1,5 +1,11 @@
 # @blueprint-data/dbt-ui
 
+## 0.1.2
+
+### Patch Changes
+
+- 1ab7906: correct inverted lineage graph direction and add sources support
+
 ## 0.1.1
 
 ### Patch Changes
