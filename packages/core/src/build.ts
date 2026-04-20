@@ -26,6 +26,7 @@ function pickPath(node: DbtNode): string | null {
 }
 
 function pickMaterialized(node: DbtNode): string | null {
+    if (node.resource_type === "source") return "source";
     const config = node.config as Record<string, unknown> | undefined;
     const m = config?.materialized;
     return typeof m === "string" ? m : null;
@@ -105,7 +106,7 @@ function insertEdges(db: Db, nodes: DbtNode[]) {
         const deps: unknown = n.depends_on?.nodes;
         const depNodes = Array.isArray(deps) ? (deps.filter((x) => typeof x === "string") as string[]) : [];
         for (const dst of depNodes) {
-            rows.push([n.unique_id, dst, "depends_on"]);
+            rows.push([dst, n.unique_id, "depends_on"]);
         }
     }
 
@@ -175,16 +176,18 @@ export async function buildFromManifest(manifestPath: string, sqlitePath: string
     const manifest = JSON.parse(fs.readFileSync(resolvedManifest, "utf-8")) as Manifest;
     const nodes = Object.values(manifest.nodes ?? {}) as DbtNode[];
     const models = nodes.filter((n) => n && n.resource_type === "model" && typeof n.unique_id === "string");
+    const sources = (Object.values(manifest.sources ?? {}) as DbtNode[])
+        .filter((n) => n && typeof n.unique_id === "string");
 
     const db = await createDb();
     try {
         initSchema(db);
         resetData(db);
 
-        insertModels(db, models);
+        insertModels(db, [...models, ...sources]);
         insertColumns(db, models);
         insertEdges(db, models);
-        populateSearchDocs(db, models);
+        populateSearchDocs(db, [...models, ...sources]);
 
         await saveDb(db, sqlitePath);
     } finally {

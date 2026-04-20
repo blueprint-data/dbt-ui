@@ -70,10 +70,10 @@ export async function GET(
           edgeOrientation === "model_dep"
             ? `SELECT e.src_unique_id as source, e.dst_unique_id as target
                FROM edge e
-               WHERE e.src_unique_id = ?`
+               WHERE e.dst_unique_id = ?`
             : `SELECT e.dst_unique_id as source, e.src_unique_id as target
                FROM edge e
-               WHERE e.dst_unique_id = ?`,
+               WHERE e.src_unique_id = ?`,
           [frontierId]
         ) as GraphEdge[];
 
@@ -81,10 +81,10 @@ export async function GET(
           edgeOrientation === "model_dep"
             ? `SELECT e.src_unique_id as source, e.dst_unique_id as target
                FROM edge e
-               WHERE e.dst_unique_id = ?`
+               WHERE e.src_unique_id = ?`
             : `SELECT e.dst_unique_id as source, e.src_unique_id as target
                FROM edge e
-               WHERE e.src_unique_id = ?`,
+               WHERE e.dst_unique_id = ?`,
           [frontierId]
         ) as GraphEdge[];
 
@@ -139,12 +139,12 @@ export async function GET(
       edgeOrientation === "model_dep"
         ? `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
            FROM edge e
-           JOIN model m ON e.dst_unique_id = m.unique_id
-           WHERE e.src_unique_id = ?`
+           JOIN model m ON e.src_unique_id = m.unique_id
+           WHERE e.dst_unique_id = ?`
         : `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
            FROM edge e
-           JOIN model m ON e.src_unique_id = m.unique_id
-           WHERE e.dst_unique_id = ?`,
+           JOIN model m ON e.dst_unique_id = m.unique_id
+           WHERE e.src_unique_id = ?`,
       [id]
     ) as RawModel[];
 
@@ -152,12 +152,12 @@ export async function GET(
       edgeOrientation === "model_dep"
         ? `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
            FROM edge e
-           JOIN model m ON e.src_unique_id = m.unique_id
-           WHERE e.dst_unique_id = ?`
+           JOIN model m ON e.dst_unique_id = m.unique_id
+           WHERE e.src_unique_id = ?`
         : `SELECT m.unique_id, m.name, m.description, m.schema_name, m.package_name, m.materialized, m.resource_type, m.tags_json
            FROM edge e
-           JOIN model m ON e.dst_unique_id = m.unique_id
-           WHERE e.src_unique_id = ?`,
+           JOIN model m ON e.src_unique_id = m.unique_id
+           WHERE e.dst_unique_id = ?`,
       [id]
     ) as RawModel[];
 

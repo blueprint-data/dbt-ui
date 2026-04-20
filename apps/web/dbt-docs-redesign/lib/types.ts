@@ -1,7 +1,7 @@
 // Core Types for dbt Docs Explorer
 
-export type ResourceType = "model" | "seed" | "snapshot";
-export type Materialization = "table" | "view" | "incremental" | "ephemeral";
+export type ResourceType = "model" | "seed" | "snapshot" | "source";
+export type Materialization = "table" | "view" | "incremental" | "ephemeral" | "source";
 
 export interface Column {
   name: string;
