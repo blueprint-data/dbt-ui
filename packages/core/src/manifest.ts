@@ -2,7 +2,7 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
 
 export type Manifest = {
     nodes?: Record<string, DbtNode>;
-    sources?: Record<string, unknown>;
+    sources?: Record<string, DbtNode>;
     metadata?: Record<string, unknown>;
 };
 

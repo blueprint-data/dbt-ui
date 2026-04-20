@@ -74,6 +74,7 @@ const MATERIALIZATION_COLORS: Record<string, string> = {
   incremental: "#6366f1",
   snapshot: "#ec4899",
   seed: "#f59e0b",
+  source: "#f97316",
   default: "#94a3b8",
 };
 
@@ -300,7 +301,7 @@ function LineageGraphInner({
 
   // Filters
   const [selectedResources, setSelectedResources] = useState<Set<ResourceType>>(
-    new Set(["model", "seed", "snapshot"])
+    new Set(["model", "seed", "snapshot", "source"])
   );
   const [selectedPackages, setSelectedPackages] = useState<Set<string>>(
     new Set()
@@ -969,7 +970,7 @@ function LineageGraphInner({
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-48 bg-popover border-border text-popover-foreground">
-              {(["model", "seed", "snapshot"] as const).map((type) => (
+              {(["model", "seed", "snapshot", "source"] as const).map((type) => (
                 <DropdownMenuCheckboxItem
                   key={type}
                   checked={selectedResources.has(type as ResourceType)}
