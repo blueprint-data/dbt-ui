@@ -1,0 +1,5 @@
+services:
+  dbt-ui:
+    environment:
+      # Intentionally opt-in. Keep this endpoint protected behind trusted network boundaries.
+      DBT_UI_MANIFEST_REFRESH_API_KEY: ${DBT_UI_MANIFEST_REFRESH_API_KEY:?set-a-strong-secret}
