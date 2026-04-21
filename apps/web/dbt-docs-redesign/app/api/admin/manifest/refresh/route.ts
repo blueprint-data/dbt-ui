@@ -1,7 +1,9 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { buildFromManifestPayload } from "@dbt-ui/core";
 import { API_KEY_HEADER, isManifestRefreshAuthorized, readManifestRefreshApiKey } from "@/lib/server/auth";
-import { getDbPath, openDb } from "@/lib/server/db";
+import { getDbPath, getManifestPath, openDb } from "@/lib/server/db";
 
 export const runtime = "nodejs";
 
@@ -25,6 +27,22 @@ function validateManifestPayload(value: unknown): value is ManifestLike {
   const sources = value.sources;
 
   return isRecord(nodes) && isRecord(sources);
+}
+
+async function writeManifestAtomically(manifestPayload: unknown, manifestPath: string): Promise<void> {
+  const dirPath = path.dirname(manifestPath);
+  const tempPath = path.join(dirPath, `.manifest.json.tmp-${process.pid}-${Date.now()}`);
+  const manifestJson = `${JSON.stringify(manifestPayload, null, 2)}\n`;
+
+  await fs.mkdir(dirPath, { recursive: true });
+
+  try {
+    await fs.writeFile(tempPath, manifestJson, "utf-8");
+    await fs.rename(tempPath, manifestPath);
+  } catch (error) {
+    await fs.rm(tempPath, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
@@ -76,10 +94,12 @@ export async function POST(request: Request) {
   refreshInProgress = true;
 
   const dbPath = getDbPath();
+  const manifestPath = getManifestPath();
   const startedAt = Date.now();
 
   try {
     await buildFromManifestPayload(payload, dbPath);
+    await writeManifestAtomically(payload, manifestPath);
 
     const { db } = await openDb();
     try {
@@ -93,6 +113,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: true,
         dbPath,
+        manifestPath,
         durationMs: Date.now() - startedAt,
         tables,
       });

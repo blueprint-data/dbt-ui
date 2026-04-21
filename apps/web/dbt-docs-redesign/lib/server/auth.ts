@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 
 const API_KEY_HEADER = "x-api-key";
 const REFRESH_API_KEY_ENV = "DBT_UI_MANIFEST_REFRESH_API_KEY";
+const MANIFEST_SERVE_API_KEY_ENV = "DBT_UI_MANIFEST_SERVE_API_KEY";
 
 function safeCompare(provided: string, expected: string): boolean {
   const providedBuffer = Buffer.from(provided);
@@ -25,6 +26,14 @@ export function readManifestRefreshApiKey(): string | null {
   return value.trim();
 }
 
+export function readManifestServeApiKey(): string | null {
+  const value = process.env[MANIFEST_SERVE_API_KEY_ENV];
+  if (!value || !value.trim()) {
+    return null;
+  }
+  return value.trim();
+}
+
 export function isManifestRefreshAuthorized(request: Request): boolean {
   const expectedApiKey = readManifestRefreshApiKey();
   if (!expectedApiKey) {
@@ -39,4 +48,18 @@ export function isManifestRefreshAuthorized(request: Request): boolean {
   return safeCompare(providedApiKey, expectedApiKey);
 }
 
-export { API_KEY_HEADER, REFRESH_API_KEY_ENV };
+export function isManifestServeAuthorized(request: Request): boolean {
+  const expectedApiKey = readManifestServeApiKey();
+  if (!expectedApiKey) {
+    return true;
+  }
+
+  const providedApiKey = request.headers.get(API_KEY_HEADER);
+  if (!providedApiKey) {
+    return false;
+  }
+
+  return safeCompare(providedApiKey, expectedApiKey);
+}
+
+export { API_KEY_HEADER, MANIFEST_SERVE_API_KEY_ENV, REFRESH_API_KEY_ENV };

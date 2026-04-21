@@ -35,6 +35,12 @@ If you want to refresh SQLite from a manifest payload while the app is running, 
 export DBT_UI_MANIFEST_REFRESH_API_KEY=your-secret-api-key
 ```
 
+If you want `GET /manifest.json` to require auth, also set:
+
+```bash
+export DBT_UI_MANIFEST_SERVE_API_KEY=your-secret-api-key
+```
+
 > **Tip:** Always use an absolute path for `--manifest`.
 
 ---
@@ -66,6 +72,8 @@ docker compose -f compose.yaml -f compose.refresh.example.yaml up --build
 - SQLite path in container: `/data/dbt_ui.sqlite` (set via `DBT_UI_DB_PATH`)
 - Exposed port: `3000`
 - Refresh endpoint remains disabled unless `DBT_UI_MANIFEST_REFRESH_API_KEY` is set
+- Compatibility endpoint `GET /manifest.json` serves `/data/manifest.json`
+- `GET /manifest.json` is public unless `DBT_UI_MANIFEST_SERVE_API_KEY` is set
 
 For full deployment guidance, see [`docs/DOCKER.md`](docs/DOCKER.md).
 
@@ -88,6 +96,7 @@ For full deployment guidance, see [`docs/DOCKER.md`](docs/DOCKER.md).
 ### `generate`
 
 Parses your `manifest.json` and builds a local SQLite database.
+Also writes a raw manifest copy to the SQLite output directory as `manifest.json` for `/manifest.json` compatibility.
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -134,12 +143,32 @@ When running the web app, you can post a full manifest payload to:
 
 - `POST /api/admin/manifest/refresh`
 - Required header: `x-api-key: <DBT_UI_MANIFEST_REFRESH_API_KEY>`
+- On success, both `<db-dir>/dbt_ui.sqlite` and `<db-dir>/manifest.json` are updated
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/manifest/refresh \
   -H "content-type: application/json" \
   -H "x-api-key: $DBT_UI_MANIFEST_REFRESH_API_KEY" \
   --data-binary "@/absolute/path/to/target/manifest.json"
+```
+
+### Read manifest through compatibility endpoint
+
+To support legacy dbt docs tooling, the app serves:
+
+- `GET /manifest.json`
+- File source: sibling of `DBT_UI_DB_PATH` (`<db-dir>/manifest.json`)
+
+```bash
+curl http://localhost:3000/manifest.json
+```
+
+Optional auth guard:
+
+```bash
+export DBT_UI_MANIFEST_SERVE_API_KEY=your-secret-api-key
+curl http://localhost:3000/manifest.json \
+  -H "x-api-key: $DBT_UI_MANIFEST_SERVE_API_KEY"
 ```
 
 ### Using a custom DB location

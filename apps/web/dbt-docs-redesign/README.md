@@ -140,6 +140,7 @@ All API routes run on the Node.js server and use sql.js to query the SQLite data
 | `GET /api/nav/database` | Get navigation tree structure |
 | `GET /api/db` | Database health check and metadata |
 | `POST /api/admin/manifest/refresh` | Rebuild SQLite from a manifest payload (requires API key) |
+| `GET /manifest.json` | Serve raw manifest from `<db-dir>/manifest.json` (optional API key) |
 
 ### Database Layer
 
@@ -343,6 +344,7 @@ Expected response (success):
 {
   "ok": true,
   "dbPath": "/absolute/path/to/dbt_ui.sqlite",
+  "manifestPath": "/absolute/path/to/manifest.json",
   "durationMs": 684,
   "tables": {
     "model": 42,
@@ -351,6 +353,29 @@ Expected response (success):
     "search_docs": 42
   }
 }
+```
+
+On success, this endpoint now updates two artifacts in the same directory as your DB path:
+- `<db-dir>/dbt_ui.sqlite`
+- `<db-dir>/manifest.json`
+
+### Manifest compatibility endpoint
+
+`GET /manifest.json` returns the manifest artifact from the same directory as `DBT_UI_DB_PATH`.
+
+- Path resolution: `path.join(path.dirname(DBT_UI_DB_PATH), "manifest.json")`
+- Default behavior: public endpoint (no auth required)
+- Optional guard: set `DBT_UI_MANIFEST_SERVE_API_KEY`, then provide `x-api-key`
+
+Example:
+```bash
+curl http://localhost:3000/manifest.json
+```
+
+With optional guard enabled:
+```bash
+curl http://localhost:3000/manifest.json \
+  -H "x-api-key: $DBT_UI_MANIFEST_SERVE_API_KEY"
 ```
 
 ### Health check endpoint

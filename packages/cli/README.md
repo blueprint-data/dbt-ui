@@ -46,6 +46,7 @@ npx @blueprint-data/dbt-ui serve --db ./dbt_ui.sqlite
 ### `generate`
 
 Parses your `manifest.json` and builds a local SQLite database.
+Also writes a raw manifest copy to the SQLite output directory as `manifest.json` for `/manifest.json` compatibility.
 
 | Flag | Default | Description |
 |------|---------|-------------|
