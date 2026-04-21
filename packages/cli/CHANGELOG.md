@@ -1,5 +1,11 @@
 # @blueprint-data/dbt-ui
 
+## 0.2.0
+
+### Minor Changes
+
+- d3c8433: Manifest API refresh & Dockerization
+
 ## 0.1.2
 
 ### Patch Changes
