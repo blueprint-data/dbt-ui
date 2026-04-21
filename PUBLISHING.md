@@ -11,8 +11,14 @@ Publishing is fully automated via GitHub Actions. The release pipeline:
 1. Builds the Next.js app in **standalone mode** (self-contained, no Node/React/pnpm required on the user's machine)
 2. Bundles the CLI + web app into a single npm package
 3. Publishes to npm using the `NPM_TOKEN` secret
+4. Publishes Docker images to GHCR (`ghcr.io/blueprint-data/dbt-ui`) with tags:
+   - `latest`
+   - `<semver>` (for example `0.1.3`)
+   - `v<semver>` (for example `v0.1.3`)
 
 > **Never run `npm publish` manually** unless it's a critical hotfix. The CI pipeline handles environment isolation, symlink conflicts, and proper signing.
+
+> Docker image publishing is tied to the same Changesets-driven release event to keep npm and container versions aligned.
 
 ---
 

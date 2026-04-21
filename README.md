@@ -8,7 +8,7 @@ A modern documentation viewer for dbt projects. Generates a fast SQLite database
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (npm)
 
 **Prerequisites:** Node.js 18+ and a dbt project with a `manifest.json`.
 
@@ -29,7 +29,45 @@ npx dbt-ui serve --db ./dbt_ui.sqlite
 # 3. Open http://localhost:3000
 ```
 
+If you want to refresh SQLite from a manifest payload while the app is running, set:
+
+```bash
+export DBT_UI_MANIFEST_REFRESH_API_KEY=your-secret-api-key
+```
+
 > **Tip:** Always use an absolute path for `--manifest`.
+
+---
+
+## 🐳 Docker Deployment
+
+Use the first-party container image when you want a repeatable deployment flow.
+
+### Quick start with Compose
+
+```bash
+# Put your SQLite file at ./target/dbt_ui.sqlite first
+docker compose up --build
+```
+
+Open `http://localhost:3000`.
+
+### Optional: Enable manifest refresh API
+
+By default, refresh is disabled (secure default). To enable it intentionally:
+
+```bash
+DBT_UI_MANIFEST_REFRESH_API_KEY=replace-with-strong-secret \
+docker compose -f compose.yaml -f compose.refresh.example.yaml up --build
+```
+
+### Runtime contract
+
+- SQLite path in container: `/data/dbt_ui.sqlite` (set via `DBT_UI_DB_PATH`)
+- Exposed port: `3000`
+- Refresh endpoint remains disabled unless `DBT_UI_MANIFEST_REFRESH_API_KEY` is set
+
+For full deployment guidance, see [`docs/DOCKER.md`](docs/DOCKER.md).
 
 ---
 
@@ -90,6 +128,20 @@ npx @blueprint-data/dbt-ui generate --manifest /absolute/path/to/manifest.json -
 npx @blueprint-data/dbt-ui serve
 ```
 
+### Refresh database through the API
+
+When running the web app, you can post a full manifest payload to:
+
+- `POST /api/admin/manifest/refresh`
+- Required header: `x-api-key: <DBT_UI_MANIFEST_REFRESH_API_KEY>`
+
+```bash
+curl -X POST http://localhost:3000/api/admin/manifest/refresh \
+  -H "content-type: application/json" \
+  -H "x-api-key: $DBT_UI_MANIFEST_REFRESH_API_KEY" \
+  --data-binary "@/absolute/path/to/target/manifest.json"
+```
+
 ### Using a custom DB location
 
 ```bash
@@ -133,7 +185,7 @@ pnpm run dev
 - [ ] Column-level lineage
 - [ ] Test results integration
 - [ ] dbt Cloud integration
-- [ ] Docker image
+- [x] Docker image and compose deployment
 
 ---
 
