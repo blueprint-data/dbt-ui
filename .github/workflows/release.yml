@@ -64,7 +64,9 @@ jobs:
       - name: Read package version
         if: steps.changesets.outputs.published == 'true'
         id: package_version
-        run: echo "version=$(node -p \"require('./packages/cli/package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(node -p 'require("./packages/cli/package.json").version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         if: steps.changesets.outputs.published == 'true'
