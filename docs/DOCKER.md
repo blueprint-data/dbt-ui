@@ -23,16 +23,27 @@ Use the official `dbt-ui` container image to run the web UI in production-like e
 | `PORT` | No | `3000` | HTTP port exposed by Next.js server. |
 | `NODE_ENV` | No | `production` | Runtime mode for the server process. |
 | `DBT_UI_MANIFEST_REFRESH_API_KEY` | No | unset | Enables `POST /api/admin/manifest/refresh` when set. |
+| `DBT_UI_MANIFEST_SERVE_API_KEY` | No | unset | If set, requires `x-api-key` for `GET /manifest.json`. |
 | `DBT_UI_EDGE_DIRECTION` | No | unset | Optional lineage edge direction override. |
 | `DBT_UI_ENABLE_CODE_FALLBACK` | No | unset | Optional model SQL fallback behavior. |
 
 ### Secure Defaults
 
 - Leave `DBT_UI_MANIFEST_REFRESH_API_KEY` **unset** to disable refresh endpoint access.
+- Leave `DBT_UI_MANIFEST_SERVE_API_KEY` **unset** to keep `/manifest.json` public (compatibility default).
 - If enabling refresh:
   - use a strong secret value,
   - keep the endpoint behind trusted network boundaries,
   - add request size/rate limits at your reverse proxy.
+- If enabling manifest serve auth:
+  - use a strong secret value,
+  - send `x-api-key` on `GET /manifest.json` requests.
+
+### Manifest Compatibility Endpoint
+
+- Route: `GET /manifest.json`
+- Source file: sibling of `DBT_UI_DB_PATH` (`<db-dir>/manifest.json`)
+- Refresh behavior: successful `POST /api/admin/manifest/refresh` updates both SQLite and this manifest file.
 
 ## Quick Start
 

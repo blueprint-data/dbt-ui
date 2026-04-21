@@ -55,6 +55,31 @@ Examples:
 `);
 }
 
+function saveManifestCopy(manifestPath, outputPath) {
+    const sourceManifest = path.resolve(manifestPath);
+    const targetManifest = path.join(path.dirname(path.resolve(outputPath)), "manifest.json");
+
+    if (sourceManifest === targetManifest) {
+        return targetManifest;
+    }
+
+    const targetDir = path.dirname(targetManifest);
+    const tempManifest = path.join(targetDir, `.manifest.json.tmp-${process.pid}-${Date.now()}`);
+
+    fs.mkdirSync(targetDir, { recursive: true });
+    try {
+        fs.copyFileSync(sourceManifest, tempManifest);
+        fs.renameSync(tempManifest, targetManifest);
+    } catch (error) {
+        if (fs.existsSync(tempManifest)) {
+            fs.rmSync(tempManifest, { force: true });
+        }
+        throw error;
+    }
+
+    return targetManifest;
+}
+
 async function generate() {
     const manifestPath = getArgValue("--manifest", "target/manifest.json");
     const outputPath = getArgValue("--out", "target/dbt_ui.sqlite");
@@ -84,16 +109,18 @@ async function generate() {
 
         console.log("🔧 Processing manifest...");
         await buildFromManifest(absManifest, absOutput);
-
-        console.log("\n✅ Database generated successfully!");
-        console.log(`\nTo start the documentation server, run:`);
-        console.log(`  dbt-ui serve`);
-        console.log("");
     } catch (error) {
         // If the import fails (e.g., in npm package without src), use inline generator
         console.log("🔧 Processing manifest (inline mode)...");
         await generateInline(absManifest, absOutput);
     }
+
+    const copiedManifestPath = saveManifestCopy(absManifest, absOutput);
+    console.log(`🧾 Manifest copy: ${copiedManifestPath}`);
+    console.log("\n✅ Database generated successfully!");
+    console.log(`\nTo start the documentation server, run:`);
+    console.log(`  dbt-ui serve`);
+    console.log("");
 }
 
 // Inline generator for when running from npm package
@@ -250,10 +277,6 @@ async function generateInline(manifestPath, outputPath) {
     fs.writeFileSync(outputPath, buffer);
     db.close();
 
-    console.log("\n✅ Database generated successfully!");
-    console.log(`\nTo start the documentation server, run:`);
-    console.log(`  dbt-ui serve`);
-    console.log("");
 }
 
 function serve() {
