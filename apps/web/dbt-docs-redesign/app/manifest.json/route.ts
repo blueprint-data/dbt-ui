@@ -4,6 +4,8 @@ import { API_KEY_HEADER, isManifestServeAuthorized } from "@/lib/server/auth";
 import { getManifestPath } from "@/lib/server/db";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: Request) {
   if (!isManifestServeAuthorized(request)) {
