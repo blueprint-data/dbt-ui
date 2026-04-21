@@ -29,6 +29,12 @@ npx dbt-ui serve --db ./dbt_ui.sqlite
 # 3. Open http://localhost:3000
 ```
 
+If you want to refresh SQLite from a manifest payload while the app is running, set:
+
+```bash
+export DBT_UI_MANIFEST_REFRESH_API_KEY=your-secret-api-key
+```
+
 > **Tip:** Always use an absolute path for `--manifest`.
 
 ---
@@ -88,6 +94,20 @@ npx @blueprint-data/dbt-ui generate --manifest /absolute/path/to/manifest.json -
 
 # Then serve
 npx @blueprint-data/dbt-ui serve
+```
+
+### Refresh database through the API
+
+When running the web app, you can post a full manifest payload to:
+
+- `POST /api/admin/manifest/refresh`
+- Required header: `x-api-key: <DBT_UI_MANIFEST_REFRESH_API_KEY>`
+
+```bash
+curl -X POST http://localhost:3000/api/admin/manifest/refresh \
+  -H "content-type: application/json" \
+  -H "x-api-key: $DBT_UI_MANIFEST_REFRESH_API_KEY" \
+  --data-binary "@/absolute/path/to/target/manifest.json"
 ```
 
 ### Using a custom DB location
