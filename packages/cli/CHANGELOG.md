@@ -1,5 +1,11 @@
 # @blueprint-data/dbt-ui
 
+## 0.2.1
+
+### Patch Changes
+
+- e64f8f6: Fix release
+
 ## 0.2.0
 
 ### Minor Changes
