@@ -15,6 +15,9 @@ Publishing is fully automated via GitHub Actions. The release pipeline:
    - `latest`
    - `<semver>` (for example `0.1.3`)
    - `v<semver>` (for example `v0.1.3`)
+   - each tag is a multi-arch manifest that includes:
+     - `linux/amd64`
+     - `linux/arm64`
 
 > **Never run `npm publish` manually** unless it's a critical hotfix. The CI pipeline handles environment isolation, symlink conflicts, and proper signing.
 

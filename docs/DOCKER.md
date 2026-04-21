@@ -4,6 +4,12 @@ Use the official `dbt-ui` container image to run the web UI in production-like e
 
 ## Runtime Contract
 
+### Supported Architectures
+
+- Published tags on `ghcr.io/blueprint-data/dbt-ui` are multi-arch (`linux/amd64` and `linux/arm64`).
+- Docker automatically pulls the matching platform for your host.
+- To force a specific platform, use `--platform` with `docker run`/`docker pull` (for example `--platform linux/arm64`).
+
 ### Network
 
 - Container port: `3000`
