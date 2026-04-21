@@ -8,7 +8,7 @@ A modern documentation viewer for dbt projects. Generates a fast SQLite database
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (npm)
 
 **Prerequisites:** Node.js 18+ and a dbt project with a `manifest.json`.
 
@@ -36,6 +36,38 @@ export DBT_UI_MANIFEST_REFRESH_API_KEY=your-secret-api-key
 ```
 
 > **Tip:** Always use an absolute path for `--manifest`.
+
+---
+
+## 🐳 Docker Deployment
+
+Use the first-party container image when you want a repeatable deployment flow.
+
+### Quick start with Compose
+
+```bash
+# Put your SQLite file at ./target/dbt_ui.sqlite first
+docker compose up --build
+```
+
+Open `http://localhost:3000`.
+
+### Optional: Enable manifest refresh API
+
+By default, refresh is disabled (secure default). To enable it intentionally:
+
+```bash
+DBT_UI_MANIFEST_REFRESH_API_KEY=replace-with-strong-secret \
+docker compose -f compose.yaml -f compose.refresh.example.yaml up --build
+```
+
+### Runtime contract
+
+- SQLite path in container: `/data/dbt_ui.sqlite` (set via `DBT_UI_DB_PATH`)
+- Exposed port: `3000`
+- Refresh endpoint remains disabled unless `DBT_UI_MANIFEST_REFRESH_API_KEY` is set
+
+For full deployment guidance, see [`docs/DOCKER.md`](docs/DOCKER.md).
 
 ---
 
@@ -153,7 +185,7 @@ pnpm run dev
 - [ ] Column-level lineage
 - [ ] Test results integration
 - [ ] dbt Cloud integration
-- [ ] Docker image
+- [x] Docker image and compose deployment
 
 ---
 
