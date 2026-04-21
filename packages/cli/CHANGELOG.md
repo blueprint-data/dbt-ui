@@ -1,5 +1,11 @@
 # @blueprint-data/dbt-ui
 
+## 0.3.2
+
+### Patch Changes
+
+- 2c7f6d5: Fix nextjs cache on manifest route
+
 ## 0.3.1
 
 ### Patch Changes
