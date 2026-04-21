@@ -1,5 +1,11 @@
 # @blueprint-data/dbt-ui
 
+## 0.3.1
+
+### Patch Changes
+
+- cdfd12d: Docker platform deployment
+
 ## 0.3.0
 
 ### Minor Changes
