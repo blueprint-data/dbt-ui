@@ -1,5 +1,11 @@
 # dbt-docs-redesign
 
+## 0.3.1
+
+### Patch Changes
+
+- 794ed02: Include platforms distribution on docker
+
 ## 0.3.0
 
 ### Minor Changes
