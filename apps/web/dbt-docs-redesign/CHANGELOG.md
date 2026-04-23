@@ -1,5 +1,11 @@
 # dbt-docs-redesign
 
+## 0.4.0
+
+### Minor Changes
+
+- b4a92b5: UI / UX improvements and fixes
+
 ## 0.3.2
 
 ### Patch Changes
