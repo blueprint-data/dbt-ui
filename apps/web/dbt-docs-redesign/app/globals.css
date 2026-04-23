@@ -5,6 +5,12 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* While resizing, shadcn sidebar width must not animate or it lags behind the pointer */
+[data-sidebar-resizing="true"] [data-slot="sidebar-gap"],
+[data-sidebar-resizing="true"] [data-slot="sidebar-container"] {
+  transition: none !important;
+}
+
 :root {
   /* Light theme - Sky blue inspired professional palette */
   --background: oklch(0.99 0.005 240);

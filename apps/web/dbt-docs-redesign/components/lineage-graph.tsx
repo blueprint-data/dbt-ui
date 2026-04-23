@@ -8,7 +8,7 @@ import React, {
   useRef,
   memo,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ReactFlow,
   MiniMap,
@@ -35,12 +35,25 @@ import {
   Search,
   ChevronDown,
   GitBranch,
-  Plus,
-  Minus,
   Crosshair,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -54,19 +67,26 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { fetchLineage } from "@/lib/api";
+import {
+  modelToSelectorString,
+  resolveSelectToIds,
+  resolveExcludeToDroppedIds,
+  resolveSelectFocusModelId,
+} from "@/lib/lineage-dbt-select";
 import type {
   ModelSummary,
   Materialization,
   ResourceType,
   LineageGraphEdge,
-  LineageGraphNode,
 } from "@/lib/types";
 
 // ─── Constants ───────────────────────────────────────────
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 48;
+
+/** Must match `LINEAGE_REFOCUS_REOPEN_KEY` in app-shell (graph open after explorer → model). */
+const LINEAGE_REFOCUS_REOPEN_KEY = "dbt-lineage-refocus-reopen";
 
 const MATERIALIZATION_COLORS: Record<string, string> = {
   table: "#10b981",
@@ -274,15 +294,16 @@ function LineageGraphInner({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const router = useRouter();
-  const { fitView, setCenter } = useReactFlow();
+  const pathname = usePathname();
+  const { fitView, setCenter, getNodes } = useReactFlow();
   const layoutRef = useRef<HTMLDivElement>(null);
+  const refocusCenterPendingRef = useRef<string | null>(null);
 
   // Data state
   const [graphModels, setGraphModels] = useState<ModelSummary[]>(models);
   const [graphEdges, setGraphEdges] = useState<
     { id: string; source: string; target: string }[]
   >([]);
-  const [graphDepth, setGraphDepth] = useState(2);
   const [graphLoading, setGraphLoading] = useState(false);
   const [graphError, setGraphError] = useState<string | null>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(
@@ -307,19 +328,70 @@ function LineageGraphInner({
     new Set()
   );
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [selectInput, setSelectInput] = useState("");
+  /** dbt-style: `tag:x`, `model`, `+m+` / `+m` / `m+` */
+  const [selectExpression, setSelectExpression] = useState("");
+  const [selectComboboxOpen, setSelectComboboxOpen] = useState(false);
+  const [selectComboQuery, setSelectComboQuery] = useState("");
   const [excludeInput, setExcludeInput] = useState("");
+  const applySelectDefaultRef = useRef(false);
+  const prevLineageOpenRef = useRef(false);
 
   // Hover tooltip
   const [hoveredNode, setHoveredNode] = useState<DbtNodeData | null>(null);
 
+  const [nodeContextMenu, setNodeContextMenu] = useState<{
+    x: number;
+    y: number;
+    nodeId: string;
+  } | null>(null);
+
   // Layout tracking — only re-run Dagre when models/edges change, not on highlight
   const prevFilterKey = useRef("");
 
-  // Sync selectedModelId
+  // Focus / active node: follows --select when set; otherwise the current page model
   useEffect(() => {
-    setActiveNodeId(selectedModelId ?? null);
-  }, [selectedModelId]);
+    if (!open) return;
+    if (graphModels.length === 0) return;
+    const trimmed = selectExpression.trim();
+    if (!trimmed) {
+      setActiveNodeId(selectedModelId ?? null);
+      if (selectedModelId) {
+        refocusCenterPendingRef.current = selectedModelId;
+      }
+      return;
+    }
+    const focusId = resolveSelectFocusModelId(selectExpression, graphModels);
+    if (focusId) {
+      setActiveNodeId(focusId);
+      refocusCenterPendingRef.current = focusId;
+    }
+  }, [open, graphModels, selectExpression, selectedModelId]);
+
+  // When the lineage dialog opens, apply default --select to the current model (if any)
+  useEffect(() => {
+    if (open && !prevLineageOpenRef.current) {
+      applySelectDefaultRef.current = true;
+    }
+    prevLineageOpenRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !applySelectDefaultRef.current) return;
+    if (!selectedModelId) {
+      setSelectExpression("");
+      setSelectComboQuery("");
+      applySelectDefaultRef.current = false;
+      return;
+    }
+    if (graphModels.length === 0) return;
+    const m = graphModels.find((x) => x.unique_id === selectedModelId);
+    if (m) {
+      const def = `+${modelToSelectorString(m)}+`;
+      setSelectExpression(def);
+      setSelectComboQuery(def);
+    }
+    applySelectDefaultRef.current = false;
+  }, [open, selectedModelId, graphModels]);
 
   // ─── Data Fetching ───────────────────────────────────
 
@@ -329,61 +401,29 @@ function LineageGraphInner({
     setGraphLoading(true);
     setGraphError(null);
 
-    if (!selectedModelId) {
-      fetch("/api/lineage/all")
-        .then((res) => res.json())
-        .then((data) => {
-          if (cancelled) return;
-          setGraphModels(data.models || []);
-          setGraphEdges(
-            (data.edges || []).map((e: LineageGraphEdge) => ({
-              id: `${e.source}->${e.target}`,
-              source: e.source,
-              target: e.target,
-            }))
-          );
-        })
-        .catch(() => {
-          if (!cancelled)
-            setGraphError("Failed to load project architecture");
-        })
-        .finally(() => {
-          if (!cancelled) setGraphLoading(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    fetchLineage(selectedModelId, graphDepth)
+    // Always load the full project graph so --select and + expansion use the
+    // entire DAG, not a depth-limited neighborhood from /api/lineage/[id].
+    fetch("/api/lineage/all")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load project architecture");
+        return res.json();
+      })
       .then((data) => {
         if (cancelled) return;
-        setGraphModels(
-          (data.nodes ?? []).map(
-            (n: LineageGraphNode): ModelSummary => ({
-              unique_id: n.id,
-              name: n.label,
-              schema: n.schema,
-              package_name: n.package_name,
-              materialization: n.materialization,
-              resource_type: n.resource_type,
-              tags: n.tags,
-              description: "",
-            })
-          )
-        );
+        setGraphModels(data.models || []);
         setGraphEdges(
-          (data.edges ?? []).map((e: LineageGraphEdge) => ({
+          (data.edges || []).map((e: LineageGraphEdge) => ({
             id: `${e.source}->${e.target}`,
             source: e.source,
             target: e.target,
           }))
         );
-        setActiveNodeId(selectedModelId);
       })
       .catch((err) => {
         if (!cancelled)
-          setGraphError(err instanceof Error ? err.message : String(err));
+          setGraphError(
+            err instanceof Error ? err.message : "Failed to load project architecture"
+          );
       })
       .finally(() => {
         if (!cancelled) setGraphLoading(false);
@@ -392,7 +432,7 @@ function LineageGraphInner({
     return () => {
       cancelled = true;
     };
-  }, [open, selectedModelId, graphDepth]);
+  }, [open]);
 
   // ─── Computed Values ─────────────────────────────────
 
@@ -405,7 +445,25 @@ function LineageGraphInner({
     [graphModels]
   );
 
+  const comboboxModels = useMemo(() => {
+    return [...graphModels].sort(
+      (a, b) =>
+        a.package_name.localeCompare(b.package_name) || a.name.localeCompare(b.name)
+    );
+  }, [graphModels]);
+
+  const comboboxTags = useMemo(
+    () => [...allTags].sort((a, b) => a.localeCompare(b)),
+    [allTags]
+  );
+
   const filteredModels = useMemo(() => {
+    const selectIdSet = resolveSelectToIds(
+      selectExpression,
+      graphModels,
+      graphEdges
+    );
+    const excludeIdSet = resolveExcludeToDroppedIds(excludeInput, graphModels);
     let result = graphModels;
     result = result.filter((m) => selectedResources.has(m.resource_type));
     if (selectedPackages.size > 0)
@@ -414,21 +472,20 @@ function LineageGraphInner({
       result = result.filter((m) =>
         (m.tags || []).some((t) => selectedTags.has(t))
       );
-    if (selectInput.trim())
-      result = result.filter((m) =>
-        m.name.toLowerCase().includes(selectInput.toLowerCase())
-      );
-    if (excludeInput.trim())
-      result = result.filter(
-        (m) => !m.name.toLowerCase().includes(excludeInput.toLowerCase())
-      );
-    return result.slice(0, 150);
+    if (selectIdSet !== null) {
+      result = result.filter((m) => selectIdSet.has(m.unique_id));
+    }
+    if (excludeIdSet.size > 0) {
+      result = result.filter((m) => !excludeIdSet.has(m.unique_id));
+    }
+    return result.slice(0, 500);
   }, [
     graphModels,
+    graphEdges,
     selectedResources,
     selectedPackages,
     selectedTags,
-    selectInput,
+    selectExpression,
     excludeInput,
   ]);
 
@@ -516,8 +573,24 @@ function LineageGraphInner({
       setNodes(layouted);
       setEdges(styledEdges);
 
-      // Fit view after layout settles
-      setTimeout(() => fitView({ padding: 0.12, duration: 400 }), 100);
+      setTimeout(() => {
+        const focusId = refocusCenterPendingRef.current;
+        if (focusId) {
+          const n = layouted.find((x) => x.id === focusId);
+          if (n) {
+            setCenter(
+              n.position.x + NODE_WIDTH / 2,
+              n.position.y + NODE_HEIGHT / 2,
+              { zoom: 1, duration: 500 }
+            );
+          } else {
+            fitView({ padding: 0.12, duration: 400 });
+          }
+          refocusCenterPendingRef.current = null;
+        } else {
+          fitView({ padding: 0.12, duration: 400 });
+        }
+      }, 100);
     } else {
       // Only update highlighting — preserve node positions
       setNodes((nds) =>
@@ -535,6 +608,20 @@ function LineageGraphInner({
       setEdges((eds) =>
         eds.map((e) => buildEdgeStyle({ id: e.id, source: e.source, target: e.target }))
       );
+      const pending = refocusCenterPendingRef.current;
+      if (pending) {
+        setTimeout(() => {
+          const n = getNodes().find((x) => x.id === pending);
+          if (n) {
+            setCenter(
+              n.position.x + NODE_WIDTH / 2,
+              n.position.y + NODE_HEIGHT / 2,
+              { zoom: 1, duration: 500 }
+            );
+          }
+          refocusCenterPendingRef.current = null;
+        }, 100);
+      }
     }
   }, [
     filteredModels,
@@ -543,6 +630,8 @@ function LineageGraphInner({
     activeNodeId,
     isDark,
     fitView,
+    setCenter,
+    getNodes,
     setNodes,
     setEdges,
   ]);
@@ -574,7 +663,52 @@ function LineageGraphInner({
 
   const onPaneClick = useCallback(() => {
     setActiveNodeId(null);
+    setNodeContextMenu(null);
   }, []);
+
+  const onNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
+    event.preventDefault();
+    const pad = 8;
+    const mw = 220;
+    const mh = 44;
+    const x = Math.max(
+      pad,
+      Math.min(event.clientX, window.innerWidth - mw - pad)
+    );
+    const y = Math.max(
+      pad,
+      Math.min(event.clientY, window.innerHeight - mh - pad)
+    );
+    setNodeContextMenu({ x, y, nodeId: node.id });
+  }, []);
+
+  const handleRefocusOnNode = useCallback(
+    (nodeId: string) => {
+      setNodeContextMenu(null);
+      const targetPath = `/model/${encodeURIComponent(nodeId)}`;
+      if (pathname === targetPath) {
+        setActiveNodeId(nodeId);
+        const node = nodes.find((n) => n.id === nodeId);
+        if (node) {
+          setCenter(
+            node.position.x + NODE_WIDTH / 2,
+            node.position.y + NODE_HEIGHT / 2,
+            { zoom: 1, duration: 500 }
+          );
+        }
+        return;
+      }
+      refocusCenterPendingRef.current = nodeId;
+      try {
+        sessionStorage.setItem(LINEAGE_REFOCUS_REOPEN_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      onOpenChange(true);
+      router.push(targetPath);
+    },
+    [pathname, nodes, router, setCenter, onOpenChange]
+  );
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback((_event, node) => {
     setHoveredNode(node.data as DbtNodeData);
@@ -598,10 +732,6 @@ function LineageGraphInner({
     },
     [nodes, setCenter]
   );
-
-  const adjustDepth = useCallback((delta: number) => {
-    setGraphDepth((d) => Math.max(1, Math.min(4, d + delta)));
-  }, []);
 
   const toggleFullscreen = useCallback(() => {
     if (!layoutRef.current) return;
@@ -691,37 +821,6 @@ function LineageGraphInner({
           </div>
 
           <div className="hidden md:block h-4 w-px bg-border" />
-
-          {/* Depth Controls — only when viewing single-model lineage */}
-          {selectedModelId && (
-            <>
-              <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded px-1 py-0.5 border border-border">
-                <span className="text-[9px] text-muted-foreground">D</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
-                  onClick={() => adjustDepth(-1)}
-                  disabled={graphDepth <= 1}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <span className="text-[10px] font-mono font-bold text-foreground min-w-[14px] text-center">
-                  {graphDepth}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
-                  onClick={() => adjustDepth(1)}
-                  disabled={graphDepth >= 4}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="hidden md:block h-4 w-px bg-border" />
-            </>
-          )}
 
           {/* Close */}
           <Button
@@ -821,6 +920,7 @@ function LineageGraphInner({
           nodeTypes={nodeTypes}
           onNodeClick={onNodeClick}
           onNodeDoubleClick={onNodeDoubleClick}
+          onNodeContextMenu={onNodeContextMenu}
           onNodeMouseEnter={onNodeMouseEnter}
           onNodeMouseLeave={onNodeMouseLeave}
           onPaneClick={onPaneClick}
@@ -863,6 +963,38 @@ function LineageGraphInner({
             zoomable
           />
         </ReactFlow>
+
+        {nodeContextMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-[200]"
+              aria-hidden
+              onClick={() => setNodeContextMenu(null)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setNodeContextMenu(null);
+              }}
+            />
+            <div
+              className="fixed z-[201] min-w-[12rem] rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+              style={{
+                top: nodeContextMenu.y,
+                left: nodeContextMenu.x,
+              }}
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
+                onClick={() => handleRefocusOnNode(nodeContextMenu.nodeId)}
+              >
+                <Crosshair className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Refocus on node
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Loading Overlay */}
         {graphLoading && (
@@ -1065,17 +1197,112 @@ function LineageGraphInner({
           </DropdownMenu>
         </div>
 
-        {/* --select */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-[180px]">
+        {/* --select: tag:, 2+pkg.model+2, +model+2, etc. */}
+        <div className="flex flex-col gap-1.5 flex-1 min-w-[200px] max-w-md">
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             --select
           </span>
-          <Input
-            placeholder="..."
-            value={selectInput}
-            onChange={(e) => setSelectInput(e.target.value)}
-            className="h-9 bg-muted/50 border-border rounded text-[11px] font-mono px-3 focus:border-sky-500/50 transition-all text-foreground placeholder:text-muted-foreground"
-          />
+          <Popover
+            open={selectComboboxOpen}
+            onOpenChange={(o) => {
+              setSelectComboboxOpen(o);
+              if (o) setSelectComboQuery(selectExpression);
+            }}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={selectComboboxOpen}
+                className="h-9 w-full min-w-0 justify-between font-mono text-[11px] bg-muted/50 border-border text-foreground hover:bg-muted/80 px-2"
+                title={selectExpression || "Search models, tags, or type a selector (e.g. 2+package.model+2)"}
+              >
+                <span className="truncate text-left">
+                  {selectExpression || "Search or type — tag:, 2+model+2, +model+ …"}
+                </span>
+                <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[var(--radix-popover-trigger-width)] min-w-[min(100vw-2rem,360px)] p-0"
+              align="start"
+            >
+              <Command shouldFilter>
+                <CommandInput
+                  placeholder="e.g. 2+package.model+2, tag:…"
+                  className="text-xs font-mono h-9"
+                  value={selectComboQuery}
+                  onValueChange={setSelectComboQuery}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = selectComboQuery.trim();
+                      if (v) {
+                        setSelectExpression(v);
+                        setSelectComboboxOpen(false);
+                      }
+                    }
+                  }}
+                />
+                <CommandList>
+                  <CommandEmpty>No matches. Press Enter to use your text.</CommandEmpty>
+                  <CommandItem
+                    value="clear all models show"
+                    onSelect={() => {
+                      setSelectExpression("");
+                      setSelectComboQuery("");
+                      setSelectComboboxOpen(false);
+                    }}
+                    className="text-xs font-mono"
+                  >
+                    Clear — show all
+                  </CommandItem>
+                  <CommandSeparator />
+                  <CommandGroup heading="Models" className="max-h-48 overflow-y-auto">
+                    {comboboxModels.map((m) => {
+                      const sel = modelToSelectorString(m);
+                      const v = `+${sel}+`;
+                      return (
+                        <CommandItem
+                          key={m.unique_id}
+                          value={`${m.name} ${sel} model`}
+                          onSelect={() => {
+                            setSelectExpression(v);
+                            setSelectComboQuery(v);
+                            setSelectComboboxOpen(false);
+                          }}
+                          className="text-xs font-mono"
+                        >
+                          <span className="truncate">{sel}</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                  <CommandSeparator />
+                  <CommandGroup heading="Tags" className="max-h-36 overflow-y-auto">
+                    {comboboxTags.map((tag) => {
+                      const v = `tag:${tag}`;
+                      return (
+                        <CommandItem
+                          key={tag}
+                          value={`${v} ${tag} tag`}
+                          onSelect={() => {
+                            setSelectExpression(v);
+                            setSelectComboQuery(v);
+                            setSelectComboboxOpen(false);
+                          }}
+                          className="text-xs font-mono"
+                        >
+                          {v}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* --exclude */}

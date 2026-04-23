@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { Copy, Check, Maximize2, Minimize2, FileCode, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  getDbtHighlighter,
+  pickDbtShikiLang,
+  shikiThemeName,
+  tokenTextStyle,
+  type ThemedToken,
+} from "@/lib/dbt-shiki";
 import { cn } from "@/lib/utils";
 
 interface CodeViewerProps {
@@ -13,7 +21,9 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
   const hasRawCode = Boolean(rawCode?.trim());
   const hasCompiledCode = Boolean(compiledCode?.trim());
 
-  const [activeTab, setActiveTab] = useState<string>(hasRawCode ? "source" : "compiled");
+  const [activeTab, setActiveTab] = useState<string>(
+    hasCompiledCode ? "compiled" : hasRawCode ? "source" : "compiled"
+  );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,10 +65,10 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
 
   return (
     <div ref={containerRef} className={cn(
-      "flex flex-col gap-0 transition-all duration-500 ease-in-out bg-background",
-      isFullscreen ? "p-8 overflow-hidden" : ""
+      "flex w-full min-w-0 flex-col gap-0 transition-all duration-500 ease-in-out",
+      isFullscreen ? "bg-background p-8 overflow-hidden" : ""
     )}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0 h-full flex flex-col">
         <div className="flex items-center justify-between mb-4 shrink-0 bg-transparent">
           <TabsList className="h-10 p-1 bg-muted/40 border border-border/40 rounded-lg">
             <TabsTrigger
@@ -93,7 +103,7 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
         <TabsContent value="source" className="mt-0 flex-1 min-h-0 relative group/codecontainer data-[state=active]:animate-in data-[state=active]:fade-in duration-300">
           <CodeBlock
             code={rawCode}
-            language="sql"
+            variant="source"
             isFullscreen={isFullscreen}
             emptyMessage="Source SQL is not available for this model."
           />
@@ -101,7 +111,7 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
         <TabsContent value="compiled" className="mt-0 flex-1 min-h-0 relative group/codecontainer data-[state=active]:animate-in data-[state=active]:fade-in duration-300">
           <CodeBlock
             code={compiledCode}
-            language="sql"
+            variant="compiled"
             isFullscreen={isFullscreen}
             emptyMessage="Compiled SQL is not available in the current SQLite database."
           />
@@ -113,16 +123,18 @@ export function CodeViewer({ rawCode, compiledCode }: CodeViewerProps) {
 
 function CodeBlock({
   code,
-  language,
+  variant,
   isFullscreen,
   emptyMessage,
 }: {
   code?: string;
-  language: string;
+  variant: "source" | "compiled";
   isFullscreen: boolean;
   emptyMessage: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const [tokenLines, setTokenLines] = useState<ThemedToken[][] | null>(null);
 
   const handleCopy = async () => {
     if (!code) return;
@@ -131,11 +143,37 @@ function CodeBlock({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const shikiLang = code ? pickDbtShikiLang(code, variant) : "sql";
+  const headerLabel =
+    variant === "compiled" ? "SQL" : shikiLang === "jinja" ? "DBT" : "SQL";
+
+  useEffect(() => {
+    if (!code?.trim()) {
+      setTokenLines(null);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const h = await getDbtHighlighter();
+        if (!alive) return;
+        const theme = shikiThemeName(resolvedTheme);
+        const { tokens } = h.codeToTokens(code, { lang: shikiLang, theme });
+        if (alive) setTokenLines(tokens);
+      } catch {
+        if (alive) setTokenLines(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [code, shikiLang, resolvedTheme]);
+
   if (!code?.trim()) {
     return (
       <div
         className={cn(
-          "w-full rounded-2xl border border-dashed border-border bg-muted/20 flex items-center justify-center px-6 text-center text-sm text-muted-foreground",
+          "w-full rounded-2xl border border-border bg-muted/20 dark:border-white/5 flex items-center justify-center px-6 text-center text-sm text-muted-foreground",
           isFullscreen ? "h-[calc(100vh-140px)]" : "h-[600px]"
         )}
       >
@@ -144,76 +182,94 @@ function CodeBlock({
     );
   }
 
-  const lines = code.split("\n");
+  const fallbackLines = code.split("\n");
+  const lineCount = tokenLines !== null ? tokenLines.length : fallbackLines.length;
 
   return (
-    <div className={cn(
-      "w-full rounded-2xl bg-[#0e1116] border border-white/5 shadow-2xl overflow-hidden relative group/block flex flex-col font-mono text-sm leading-6",
-      isFullscreen ? "h-[calc(100vh-140px)]" : "h-[600px]"
-    )}>
-      {/* Premium Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-sky-500/5 pointer-events-none z-0" />
-      
-      {/* Header Bar */}
-      <div className="h-11 px-5 flex items-center justify-between border-b border-white/5 bg-white/[0.02] shrink-0 z-10 relative">
+    <div
+      className={cn(
+        "w-full overflow-hidden relative group/block flex flex-col rounded-2xl border border-border font-mono text-sm leading-6 bg-card text-card-foreground",
+        "dark:border-white/5 dark:bg-[#0e1116] dark:text-slate-100",
+        isFullscreen ? "h-[calc(100vh-140px)]" : "h-[600px]"
+      )}
+    >
+      <div className="h-11 px-5 flex items-center justify-between border-b border-border bg-muted/40 dark:border-white/5 dark:bg-white/[0.02] shrink-0 z-10 relative">
         <div className="flex items-center gap-2">
-            <div className="flex gap-2 mr-4">
-                <div className="h-2.5 w-2.5 rounded-full bg-[#ef4444]/80" />
-                <div className="h-2.5 w-2.5 rounded-full bg-[#eab308]/80" />
-                <div className="h-2.5 w-2.5 rounded-full bg-[#22c55e]/80" />
-            </div>
-            <FileCode className="h-3.5 w-3.5 text-muted-foreground/60" />
-            <span className="text-xs font-bold text-muted-foreground/60">{language.toUpperCase()}</span>
+          <div className="flex gap-2 mr-4">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#ef4444]/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[#eab308]/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[#22c55e]/80" />
+          </div>
+          <FileCode className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-bold text-muted-foreground" title="Syntax: Shiki (TextMate)">
+            {headerLabel}
+          </span>
         </div>
-        
+
         <div className="flex items-center gap-3">
-             <span className="text-[10px] font-bold text-muted-foreground/40 hidden sm:block">
-                {lines.length} LINES
-             </span>
-             <div className="w-[1px] h-4 bg-white/10 hidden sm:block" />
-             <Button
-                size="sm"
-                variant="ghost" 
-                onClick={handleCopy}
-                className={cn(
-                  "h-7 gap-2 text-xs font-bold uppercase tracking-wider bg-white/5 hover:bg-white/10 hover:text-white border border-white/5 transition-all",
-                  copied && "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-                )}
-             >
-                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                {copied ? "Copied" : "Copy"}
-             </Button>
+          <span className="text-[10px] font-bold text-muted-foreground/70 hidden sm:block">
+            {lineCount} LINES
+          </span>
+          <div className="w-px h-4 bg-border dark:bg-white/10 hidden sm:block" />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleCopy}
+            className={cn(
+              "h-7 gap-2 text-xs font-bold uppercase tracking-wider",
+              "bg-muted/80 hover:bg-muted border border-border hover:text-foreground",
+              "dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/5 dark:hover:text-white",
+              copied && "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400 dark:border-emerald-500/20"
+            )}
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copied" : "Copy"}
+          </Button>
         </div>
       </div>
 
-      {/* Code Area */}
-      <div 
-        className="flex-1 overflow-auto custom-scrollbar relative z-10 p-1 dark"
-        style={{ colorScheme: 'dark' }}
-      >
+      <div className="flex-1 overflow-auto custom-scrollbar relative z-10 p-1 [color-scheme:light] dark:[color-scheme:dark]">
         <pre className="p-4 pt-6 min-w-full inline-block">
           <code className="block min-w-full">
-            {lines.map((line, i) => (
-              <div key={i} className="flex group/line hover:bg-white/[0.03] -mx-4 px-4 transition-colors duration-75 relative">
-                {/* Line Number */}
-                <span className="w-12 shrink-0 text-right pr-6 select-none text-muted-foreground/20 text-[11px] leading-6 font-bold group-hover/line:text-muted-foreground/50 transition-colors border-r border-white/5 mr-4">
-                  {i + 1}
-                </span>
-                
-                {/* Code Content with Basic Syntax Highlighting Logic */}
-                <span className={cn(
-                  "whitespace-pre text-[13px] leading-6 transition-colors font-medium break-words max-w-[calc(100%-4rem)] md:max-w-none",
-                  line.trim().startsWith("--") ? "text-slate-500 italic" : // Comments
-                  line.includes("{{") || line.includes("}}") ? "text-[#f472b6]" : // Jinja tags (Pink)
-                  line.match(/\b(SELECT|FROM|WHERE|JOIN|GROUP BY|ORDER BY|LIMIT|AS|WITH|UNION|ALL|OR|AND|NOT|IN|NULL|IS|LEFT|RIGHT|INNER|OUTER|ON|HAVING|CASE|WHEN|THEN|ELSE|END|DISTINCT|CAST|Create|View|Table)\b/i) ? "text-[#60a5fa] font-bold" : // SQL Keywords (Blue)
-                  line.match(/['"`][^'"`]*['"`]/) ? "text-[#a3e635]" : // Strings (Green)
-                  line.match(/\b\d+\b/) ? "text-[#fb923c]" : // Numbers (Orange)
-                  "text-slate-300" // Default
-                )}>
-                  {line || " "}
-                </span>
-              </div>
-            ))}
+            {tokenLines !== null
+              ? tokenLines.map((line, i) => (
+                  <div
+                    key={i}
+                    className="flex group/line hover:bg-black/[0.04] dark:hover:bg-white/[0.03] -mx-4 px-4 transition-colors duration-75 relative"
+                  >
+                    <span className="w-12 shrink-0 text-right pr-6 select-none text-[11px] leading-6 font-bold text-muted-foreground/50 group-hover/line:text-muted-foreground/80 transition-colors border-r border-border dark:border-white/5 mr-4">
+                      {i + 1}
+                    </span>
+                    <span className="whitespace-pre text-[13px] leading-6 break-words max-w-[calc(100%-4rem)] md:max-w-none">
+                      {line.length === 0
+                        ? " "
+                        : line.map((t, j) => (
+                            <span
+                              key={j}
+                              style={{
+                                color: t.color,
+                                ...tokenTextStyle(t.fontStyle),
+                              }}
+                            >
+                              {t.content}
+                            </span>
+                          ))}
+                    </span>
+                  </div>
+                ))
+              : fallbackLines.map((line, i) => (
+                  <div
+                    key={i}
+                    className="flex group/line hover:bg-black/[0.04] dark:hover:bg-white/[0.03] -mx-4 px-4 transition-colors duration-75 relative"
+                  >
+                    <span className="w-12 shrink-0 text-right pr-6 select-none text-[11px] leading-6 font-bold text-muted-foreground/50 group-hover/line:text-muted-foreground/80 transition-colors border-r border-border dark:border-white/5 mr-4">
+                      {i + 1}
+                    </span>
+                    <span className="whitespace-pre text-[13px] leading-6 text-foreground/90 dark:text-slate-300 break-words max-w-[calc(100%-4rem)] md:max-w-none">
+                      {line || " "}
+                    </span>
+                  </div>
+                ))}
           </code>
         </pre>
       </div>

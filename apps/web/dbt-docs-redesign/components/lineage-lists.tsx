@@ -26,7 +26,7 @@ export function LineageList({ models, direction, isLoading }: LineageListProps) 
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="w-full min-w-0 space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border shadow-sm">
             <Skeleton className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-900" />
@@ -42,7 +42,7 @@ export function LineageList({ models, direction, isLoading }: LineageListProps) 
 
   if (models.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/20 dark:bg-slate-950/20 rounded-2xl border border-border border-dashed">
+      <div className="w-full min-w-0 flex flex-col items-center justify-center py-12 text-center bg-muted/20 dark:bg-slate-950/20 rounded-2xl border border-border border-dashed">
         <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/50 p-4 mb-4">
           <Icon className="h-8 w-8 text-slate-300 dark:text-slate-700" />
         </div>
@@ -55,7 +55,7 @@ export function LineageList({ models, direction, isLoading }: LineageListProps) 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 space-y-4">
       <div className="flex items-center justify-between">
         <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">
           {label} Models
@@ -69,7 +69,7 @@ export function LineageList({ models, direction, isLoading }: LineageListProps) 
           <Link
             key={model.unique_id}
             href={`/model/${encodeURIComponent(model.unique_id)}`}
-            className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-sky-200 dark:hover:border-sky-800 hover:shadow-md transition-all group"
+            className="flex w-full min-w-0 items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-sky-200 dark:hover:border-sky-800 hover:shadow-md transition-all group"
           >
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 group-hover:text-sky-600 dark:group-hover:text-sky-400 group-hover:bg-sky-50 dark:group-hover:bg-sky-900/30 transition-all">
               <FileCode className="h-5 w-5" />

@@ -2,15 +2,30 @@
 
 import React from "react"
 
-import { useState } from "react";
-import { Menu, X, GitBranch } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sidebar,
+  SidebarInset,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Header } from "@/components/header";
 import { TreeSidebar } from "@/components/tree-sidebar";
 import { LineageGraph } from "@/components/lineage-graph";
+import {
+  SidebarResizeHandle,
+  SIDEBAR_DEFAULT_WIDTH,
+} from "@/components/sidebar-resize-handle";
 import { cn } from "@/lib/utils";
 import type { ModelSummary } from "@/lib/types";
+
+const SIDEBAR_WIDTH_STORAGE_KEY = "dbt-docs-sidebar-width";
+const SIDEBAR_OPEN_STORAGE_KEY = "dbt-docs-sidebar-open";
+/** Set by lineage graph when navigating to a model so the graph stays open after route change (e.g. explorer → model). */
+const LINEAGE_REFOCUS_REOPEN_KEY = "dbt-lineage-refocus-reopen";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -31,51 +46,139 @@ export function AppShell({
   graphOpen: controlledGraphOpen,
   onGraphOpenChange
 }: AppShellProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [internalGraphOpen, setInternalGraphOpen] = useState(false);
+  const [sidebarWidthPx, setSidebarWidthPx] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [sidebarResizeDragging, setSidebarResizeDragging] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const isGraphOpen = controlledGraphOpen ?? internalGraphOpen;
   const setGraphOpen = onGraphOpenChange ?? setInternalGraphOpen;
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+      if (raw) {
+        const n = Number.parseInt(raw, 10);
+        if (!Number.isNaN(n) && n >= 200 && n <= 1200) {
+          setSidebarWidthPx(n);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
+      if (raw === "false") {
+        setSidebarOpen(false);
+      } else if (raw === "true") {
+        setSidebarOpen(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(LINEAGE_REFOCUS_REOPEN_KEY) === "1") {
+        sessionStorage.removeItem(LINEAGE_REFOCUS_REOPEN_KEY);
+        setGraphOpen(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [setGraphOpen]);
+
+  const handleSidebarOpenChange = useCallback((open: boolean) => {
+    setSidebarOpen(open);
+    try {
+      localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(open));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setSidebarWidthLive = useCallback((next: number) => {
+    setSidebarWidthPx(next);
+  }, []);
+
+  const commitSidebarWidth = useCallback((next: number) => {
+    try {
+      localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      setSidebarWidthPx((w) => {
+        const max = Math.max(
+          320,
+          Math.floor(window.innerWidth * 0.6)
+        );
+        if (w <= max) return w;
+        const clamped = Math.min(w, max);
+        try {
+          localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped));
+        } catch {
+          /* ignore */
+        }
+        return clamped;
+      });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
-      {/* Header */}
-      <Header totalModels={totalModels}>
-        {/* Mobile menu trigger */}
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden mr-2 hover:bg-sky-100 dark:hover:bg-slate-800"
-              aria-label="Open navigation"
-            >
-              <Menu className="h-5 w-5 text-foreground" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[320px] bg-background border-r dark:border-slate-800">
-            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-            <SheetDescription className="sr-only">
-              Browse your dbt project models and databases
-            </SheetDescription>
-            <TreeSidebar selectedModelId={selectedModelId} className="h-full border-r-0" />
-          </SheetContent>
-        </Sheet>
-      </Header>
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={handleSidebarOpenChange}
+      className="min-h-screen flex flex-col"
+      data-sidebar-resizing={sidebarResizeDragging ? "true" : undefined}
+      style={
+        {
+          "--sidebar-width": `${sidebarWidthPx}px`,
+          "--sidebar-width-mobile": `${sidebarWidthPx}px`,
+        } as React.CSSProperties
+      }
+    >
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+        {/* Header */}
+        <Header totalModels={totalModels}>
+          <SidebarTrigger
+            className="mr-2 hover:bg-sky-100 dark:hover:bg-slate-800 [&_svg]:size-5"
+            aria-label="Toggle navigation"
+          />
+        </Header>
 
-      {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Sidebar */}
-        <TreeSidebar
-          selectedModelId={selectedModelId}
-          className="hidden lg:flex shrink-0"
-        />
+        {/* Body: shadcn sidebar (sheet on small screens, off-canvas on lg+) */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <Sidebar
+            collapsible="offcanvas"
+            className="top-16 h-[calc(100svh-4rem)] border-0 bg-transparent"
+          >
+            <SidebarRail />
+            <TreeSidebar
+              selectedModelId={selectedModelId}
+              className="min-h-0 flex-1 border-r-0"
+            />
+            <SidebarResizeHandle
+              width={sidebarWidthPx}
+              onWidthChange={setSidebarWidthLive}
+              onResizeCommit={commitSidebarWidth}
+              onDragActiveChange={setSidebarResizeDragging}
+            />
+          </Sidebar>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
-          {children}
-        </main>
-      </div>
+          <SidebarInset className="min-h-0 flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+            {children}
+          </SidebarInset>
+        </div>
 
       {/* Floating Graph Button - Global Access */}
       <Button
@@ -106,6 +209,7 @@ export function AppShell({
         models={allModels}
         selectedModelId={selectedModelId}
       />
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }
