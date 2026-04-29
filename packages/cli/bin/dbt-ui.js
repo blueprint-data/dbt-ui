@@ -158,6 +158,7 @@ async function generateInline(manifestPath, outputPath) {
             name TEXT NOT NULL,
             description TEXT,
             meta_json TEXT,
+            data_type TEXT,
             FOREIGN KEY (model_unique_id) REFERENCES model(unique_id)
         );
         
@@ -229,9 +230,16 @@ async function generateInline(manifestPath, outputPath) {
         // Insert columns
         const columns = model.columns || {};
         for (const [colName, colDef] of Object.entries(columns)) {
+            const dt = colDef?.data_type;
             db.run(
-                `INSERT INTO column_def (model_unique_id, name, description, meta_json) VALUES (?, ?, ?, ?)`,
-                [model.unique_id, colName, colDef?.description || null, colDef?.meta ? JSON.stringify(colDef.meta) : null]
+                `INSERT INTO column_def (model_unique_id, name, description, meta_json, data_type) VALUES (?, ?, ?, ?, ?)`,
+                [
+                    model.unique_id,
+                    colName,
+                    colDef?.description || null,
+                    colDef?.meta ? JSON.stringify(colDef.meta) : null,
+                    typeof dt === "string" && dt.length > 0 ? dt : null,
+                ]
             );
         }
 

@@ -168,11 +168,24 @@ export async function createDb(): Promise<Db> {
   return wrapDb(db);
 }
 
+/** Adds `data_type` to legacy `column_def` tables (CREATE IF NOT EXISTS does not alter existing tables). */
+export function ensureColumnDefSchema(db: Db): void {
+  const table = db.get(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name='column_def'`
+  );
+  if (!table) return;
+  const cols = db.all("PRAGMA table_info(column_def)") as Array<{ name: string }>;
+  if (cols.some((c) => c.name === "data_type")) return;
+  db.run("ALTER TABLE column_def ADD COLUMN data_type TEXT");
+}
+
 export async function openDb(sqlitePath: string): Promise<Db> {
   const SQL = await getSql();
   const data = fs.readFileSync(sqlitePath);
   const db = new SQL.Database(data);
-  return wrapDb(db);
+  const wrapped = wrapDb(db);
+  ensureColumnDefSchema(wrapped);
+  return wrapped;
 }
 
 export async function saveDb(db: Db, sqlitePath: string): Promise<void> {
@@ -206,6 +219,7 @@ export function initSchema(db: Db) {
       name TEXT NOT NULL,
       description TEXT,
       meta_json TEXT,
+      data_type TEXT,
       PRIMARY KEY (model_unique_id, name),
       FOREIGN KEY (model_unique_id) REFERENCES model(unique_id) ON DELETE CASCADE
     );

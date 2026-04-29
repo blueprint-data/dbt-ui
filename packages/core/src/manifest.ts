@@ -24,6 +24,9 @@ export type DbtNode = {
     tags?: string[];
     meta?: Record<string, JsonValue>;
     config?: Record<string, JsonValue>;
-    columns?: Record<string, { description?: string; meta?: Record<string, JsonValue> }>;
+    columns?: Record<
+        string,
+        { description?: string; meta?: Record<string, JsonValue>; data_type?: string }
+    >;
     depends_on?: { nodes?: string[] };
 };

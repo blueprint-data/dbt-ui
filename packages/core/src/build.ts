@@ -81,11 +81,13 @@ function insertColumns(db: Db, nodes: DbtNode[]) {
     for (const n of nodes) {
         const cols = n.columns ?? {};
         for (const [colName, colDef] of Object.entries(cols)) {
+            const dt = colDef?.data_type;
             rows.push([
                 n.unique_id,
                 colName,
                 colDef?.description ?? null,
                 safeJson(colDef?.meta),
+                typeof dt === "string" && dt.length > 0 ? dt : null,
             ]);
         }
     }
@@ -93,7 +95,7 @@ function insertColumns(db: Db, nodes: DbtNode[]) {
     db.transaction(() => {
         for (const r of rows) {
             db.run(
-                `INSERT INTO column_def (model_unique_id, name, description, meta_json) VALUES (?, ?, ?, ?)`,
+                `INSERT INTO column_def (model_unique_id, name, description, meta_json, data_type) VALUES (?, ?, ?, ?, ?)`,
                 r
             );
         }
