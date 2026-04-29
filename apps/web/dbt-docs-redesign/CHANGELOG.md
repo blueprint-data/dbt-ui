@@ -1,5 +1,16 @@
 # dbt-docs-redesign
 
+## 0.5.0
+
+### Minor Changes
+
+- 649a703: Implemented proper parsing of column data types from manifest
+
+### Patch Changes
+
+- Updated dependencies [649a703]
+  - @dbt-ui/core@0.1.0
+
 ## 0.4.0
 
 ### Minor Changes
