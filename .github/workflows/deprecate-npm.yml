@@ -1,0 +1,29 @@
+name: Deprecate vulnerable npm versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Deprecate all vulnerable versions
+        run: |
+          MESSAGE="Vulnerable to CVE-2026-44578 (Next.js SSRF, CVSS 8.6). Upgrade to 0.5.1+"
+          for v in 0.1.0 0.1.1 0.1.2 0.2.0 0.2.1 0.3.0 0.3.1 0.3.2 0.4.0 0.5.0; do
+            echo "Deprecating $v..."
+            npm deprecate "@blueprint-data/dbt-ui@$v" "$MESSAGE" || echo "FAILED: $v"
+          done
+
+      - name: Verify
+        run: npm view @blueprint-data/dbt-ui --json | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+dep = d.get('deprecated', {})
+print('Deprecated versions:')
+for v, msg in dep.items() if isinstance(dep, dict) else []:
+    print(f'  {v}: {msg}')
+" || npm view @blueprint-data/dbt-ui versions --json
