@@ -1,5 +1,11 @@
 # @blueprint-data/dbt-ui
 
+## 0.5.1
+
+### Patch Changes
+
+- 135684b: fix(security): upgrade Next.js to 16.2.5 in bundled app — patches CVE-2026-44578 (SSRF, CVSS 8.6)
+
 ## 0.5.0
 
 ### Minor Changes
