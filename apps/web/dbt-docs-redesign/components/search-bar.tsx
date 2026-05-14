@@ -193,7 +193,7 @@ export function SearchBar({ className }: SearchBarProps) {
                             {result.name}
                           </div>
                           {result.description && (
-                            <div className="text-xs text-muted-foreground dark:text-slate-400 truncate mt-0.5">
+                            <div className="mt-0.5 min-w-0 max-w-full overflow-hidden text-xs text-muted-foreground [overflow-wrap:anywhere] [word-break:break-word] line-clamp-2 dark:text-slate-400">
                               {result.description}
                             </div>
                           )}
@@ -234,7 +234,7 @@ export function SearchBar({ className }: SearchBarProps) {
                                 {result.name}
                               </div>
                               {result.description && (
-                                <div className="text-xs text-muted-foreground truncate">
+                                <div className="min-w-0 max-w-full overflow-hidden text-xs text-muted-foreground [overflow-wrap:anywhere] [word-break:break-word] line-clamp-2">
                                   {result.description}
                                 </div>
                               )}

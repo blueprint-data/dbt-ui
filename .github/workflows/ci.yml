@@ -40,3 +40,65 @@ jobs:
 
       - name: Build web app
         run: pnpm --filter dbt-docs-redesign build
+
+  docker-smoke:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t dbt-ui:ci .
+
+      - name: Create smoke test SQLite database
+        run: |
+          python - <<'PY'
+          import pathlib
+          import sqlite3
+
+          db_path = pathlib.Path("/tmp/dbt_ui.sqlite")
+          conn = sqlite3.connect(db_path)
+          conn.execute("CREATE TABLE IF NOT EXISTS smoke (id INTEGER PRIMARY KEY)")
+          conn.commit()
+          conn.close()
+          print(f"Created smoke DB at {db_path}")
+          PY
+
+      - name: Run container and verify routes
+        run: |
+          docker run -d \
+            --name dbt-ui-smoke \
+            -p 3000:3000 \
+            -e DBT_UI_DB_PATH=/data/dbt_ui.sqlite \
+            -v /tmp/dbt_ui.sqlite:/data/dbt_ui.sqlite \
+            dbt-ui:ci
+
+          cleanup() {
+            docker logs dbt-ui-smoke || true
+            docker rm -f dbt-ui-smoke || true
+          }
+          trap cleanup EXIT
+
+          for i in {1..30}; do
+            body="$(curl --silent http://127.0.0.1:3000/api/db || true)"
+            if [[ "$body" == *'"ok":true'* ]]; then
+              break
+            fi
+            if [[ "$i" -eq 30 ]]; then
+              echo "Timed out waiting for /api/db to return ok=true"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          status_code="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -X POST \
+            -H 'content-type: application/json' \
+            --data '{}' \
+            http://127.0.0.1:3000/api/admin/manifest/refresh)"
+
+          if [[ "$status_code" != "503" ]]; then
+            echo "Expected refresh endpoint to be disabled (503), got $status_code"
+            exit 1
+          fi

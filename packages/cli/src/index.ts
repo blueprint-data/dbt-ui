@@ -12,6 +12,31 @@ const __dirname = path.dirname(__filename);
 const args = process.argv.slice(2);
 const command = args[0];
 
+function saveManifestCopy(manifestPath: string, sqlitePath: string): string {
+    const sourceManifest = path.resolve(manifestPath);
+    const targetManifest = path.join(path.dirname(path.resolve(sqlitePath)), "manifest.json");
+
+    if (sourceManifest === targetManifest) {
+        return targetManifest;
+    }
+
+    const targetDir = path.dirname(targetManifest);
+    const tempManifest = path.join(targetDir, `.manifest.json.tmp-${process.pid}-${Date.now()}`);
+
+    fs.mkdirSync(targetDir, { recursive: true });
+    try {
+        fs.copyFileSync(sourceManifest, tempManifest);
+        fs.renameSync(tempManifest, targetManifest);
+    } catch (error) {
+        if (fs.existsSync(tempManifest)) {
+            fs.rmSync(tempManifest, { force: true });
+        }
+        throw error;
+    }
+
+    return targetManifest;
+}
+
 async function main() {
     if (command === "generate") {
         const skipDbt = args.includes("--skip-dbt");
@@ -36,6 +61,7 @@ async function main() {
         console.log(`Building SQLite at ${sqlitePath} from ${manifestPath}...`);
         try {
             await buildFromManifest(manifestPath, sqlitePath);
+            const copiedManifestPath = saveManifestCopy(manifestPath, sqlitePath);
 
             const db = await openDb(sqlitePath);
             const counts = db.get(`
@@ -52,6 +78,7 @@ async function main() {
             console.log(`- Columns: ${counts.columns}`);
             console.log(`- Edges: ${counts.edges}`);
             console.log(`- Search entries: ${counts.search_docs}`);
+            console.log(`- Manifest copy: ${copiedManifestPath}`);
         } catch (error) {
             console.error("Error during build:", error);
             process.exit(1);

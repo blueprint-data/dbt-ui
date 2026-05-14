@@ -292,22 +292,40 @@ export async function getAllModels(): Promise<ModelSummary[]> {
   return data.items;
 }
 
+export interface BreadcrumbSegment {
+  label: string;
+  id: string;
+  type: string;
+  /** Present when `type` is `model` — used for navigation. */
+  modelId?: string;
+}
+
 // Get breadcrumb path for a model
 export function getBreadcrumbPath(
   tree: TreeNode[],
   modelId: string,
-  mode: TreeMode
-): { label: string; id: string; type: string }[] {
-  const path: { label: string; id: string; type: string }[] = [];
+  _mode: TreeMode
+): BreadcrumbSegment[] {
+  const path: BreadcrumbSegment[] = [];
 
   function findPath(nodes: TreeNode[], target: string): boolean {
     for (const node of nodes) {
       if (node.modelId === target) {
-        path.push({ label: node.label, id: node.id, type: node.type });
+        path.push({
+          label: node.label,
+          id: node.id,
+          type: node.type,
+          modelId: node.modelId,
+        });
         return true;
       }
       if (node.children.length > 0 && findPath(node.children, target)) {
-        path.unshift({ label: node.label, id: node.id, type: node.type });
+        path.unshift({
+          label: node.label,
+          id: node.id,
+          type: node.type,
+          modelId: node.modelId,
+        });
         return true;
       }
     }

@@ -14,6 +14,10 @@ export function getDbPath(): string {
   return envPath ? path.resolve(envPath) : path.resolve(process.cwd(), DEFAULT_DB_PATH);
 }
 
+export function getManifestPath(): string {
+  return path.join(path.dirname(getDbPath()), "manifest.json");
+}
+
 export async function getDb(): Promise<Db> {
   const dbPath = getDbPath();
 

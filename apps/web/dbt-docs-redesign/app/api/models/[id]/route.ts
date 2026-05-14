@@ -59,12 +59,12 @@ export async function GET(
     }
 
     const columns = db.all(
-      `SELECT name, description
+      `SELECT name, description, data_type
        FROM column_def
        WHERE model_unique_id = ?
        ORDER BY name`,
       [id]
-    ) as Array<{ name: string; description?: string | null }>;
+    ) as Array<{ name: string; description?: string | null; data_type?: string | null }>;
 
     const hasRawCode = typeof model.raw_code === "string" && model.raw_code.trim().length > 0;
     const hasCompiledCode = typeof model.compiled_code === "string" && model.compiled_code.trim().length > 0;
@@ -130,6 +130,7 @@ WHERE deleted_at IS NULL`
       columns: columns.map(col => ({
         name: col.name,
         description: col.description ?? undefined,
+        type: col.data_type?.trim() ? col.data_type.trim() : undefined,
       })),
       raw_code: rawCode,
       compiled_code: compiledCode,

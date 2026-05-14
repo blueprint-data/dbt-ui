@@ -1,0 +1,15 @@
+.git
+.github
+.next
+.cursor
+.changeset/pre.json
+node_modules
+**/node_modules
+**/.next
+target
+dist
+coverage
+*.log
+*.sqlite
+*.tgz
+packages/cli/web-app

@@ -34,6 +34,9 @@ function TooltipTrigger({
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
+/** Use under a single [TooltipProvider] (e.g. a table) to avoid nesting providers. */
+const TooltipRoot = TooltipPrimitive.Root
+
 function TooltipContent({
   className,
   sideOffset = 0,
@@ -58,4 +61,4 @@ function TooltipContent({
   )
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+export { Tooltip, TooltipRoot, TooltipTrigger, TooltipContent, TooltipProvider }

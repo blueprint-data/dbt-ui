@@ -1,0 +1,17 @@
+name: dbt-ui
+
+services:
+  dbt-ui:
+    image: ghcr.io/blueprint-data/dbt-ui:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DBT_UI_DB_PATH: /data/dbt_ui.sqlite
+      PORT: "3000"
+      NODE_ENV: production
+    volumes:
+      - ./target:/data
+    restart: unless-stopped

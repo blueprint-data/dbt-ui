@@ -5,7 +5,7 @@ export type Materialization = "table" | "view" | "incremental" | "ephemeral" | "
 
 export interface Column {
   name: string;
-  type?: string; // Note: Currently not populated from DB - reserved for future dbt schema type info
+  type?: string; // From manifest column `data_type` when present (e.g. after generate / manifest refresh)
   description?: string;
 }
 

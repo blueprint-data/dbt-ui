@@ -43,7 +43,12 @@ npm install
    export DBT_UI_DB_PATH=/path/to/your/dbt-project/target/dbt_ui.sqlite
    ```
 
-2. **Start the development server:**
+2. **Optional: enable secured manifest refresh endpoint**
+   ```bash
+   export DBT_UI_MANIFEST_REFRESH_API_KEY=your-secret-api-key
+   ```
+
+3. **Start the development server:**
    ```bash
    pnpm dev
    # or
@@ -134,6 +139,8 @@ All API routes run on the Node.js server and use sql.js to query the SQLite data
 | `GET /api/search` | Full-text search across models and columns |
 | `GET /api/nav/database` | Get navigation tree structure |
 | `GET /api/db` | Database health check and metadata |
+| `POST /api/admin/manifest/refresh` | Rebuild SQLite from a manifest payload (requires API key) |
+| `GET /manifest.json` | Serve raw manifest from `<db-dir>/manifest.json` (optional API key) |
 
 ### Database Layer
 
@@ -319,6 +326,57 @@ Check the terminal where the dev server is running for detailed error messages. 
 - **Corrupted database**: Regenerate with `npx @dbt-ui/cli generate`
 - **Missing tables**: Database schema mismatch - regenerate database
 - **WASM not loaded**: See "WASM file not found" above
+
+### Refresh SQLite via API
+
+If you set `DBT_UI_MANIFEST_REFRESH_API_KEY`, you can refresh the SQLite file without running `npx @dbt-ui/cli generate` manually.
+
+Example:
+```bash
+curl -X POST http://localhost:3000/api/admin/manifest/refresh \
+  -H "content-type: application/json" \
+  -H "x-api-key: $DBT_UI_MANIFEST_REFRESH_API_KEY" \
+  --data-binary "@/absolute/path/to/target/manifest.json"
+```
+
+Expected response (success):
+```json
+{
+  "ok": true,
+  "dbPath": "/absolute/path/to/dbt_ui.sqlite",
+  "manifestPath": "/absolute/path/to/manifest.json",
+  "durationMs": 684,
+  "tables": {
+    "model": 42,
+    "column_def": 315,
+    "edge": 89,
+    "search_docs": 42
+  }
+}
+```
+
+On success, this endpoint now updates two artifacts in the same directory as your DB path:
+- `<db-dir>/dbt_ui.sqlite`
+- `<db-dir>/manifest.json`
+
+### Manifest compatibility endpoint
+
+`GET /manifest.json` returns the manifest artifact from the same directory as `DBT_UI_DB_PATH`.
+
+- Path resolution: `path.join(path.dirname(DBT_UI_DB_PATH), "manifest.json")`
+- Default behavior: public endpoint (no auth required)
+- Optional guard: set `DBT_UI_MANIFEST_SERVE_API_KEY`, then provide `x-api-key`
+
+Example:
+```bash
+curl http://localhost:3000/manifest.json
+```
+
+With optional guard enabled:
+```bash
+curl http://localhost:3000/manifest.json \
+  -H "x-api-key: $DBT_UI_MANIFEST_SERVE_API_KEY"
+```
 
 ### Health check endpoint
 

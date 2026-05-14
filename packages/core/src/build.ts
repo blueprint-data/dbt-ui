@@ -81,11 +81,13 @@ function insertColumns(db: Db, nodes: DbtNode[]) {
     for (const n of nodes) {
         const cols = n.columns ?? {};
         for (const [colName, colDef] of Object.entries(cols)) {
+            const dt = colDef?.data_type;
             rows.push([
                 n.unique_id,
                 colName,
                 colDef?.description ?? null,
                 safeJson(colDef?.meta),
+                typeof dt === "string" && dt.length > 0 ? dt : null,
             ]);
         }
     }
@@ -93,7 +95,7 @@ function insertColumns(db: Db, nodes: DbtNode[]) {
     db.transaction(() => {
         for (const r of rows) {
             db.run(
-                `INSERT INTO column_def (model_unique_id, name, description, meta_json) VALUES (?, ?, ?, ?)`,
+                `INSERT INTO column_def (model_unique_id, name, description, meta_json, data_type) VALUES (?, ?, ?, ?, ?)`,
                 r
             );
         }
@@ -167,13 +169,12 @@ function populateSearchDocs(db: Db, nodes: DbtNode[]) {
     });
 }
 
-export async function buildFromManifest(manifestPath: string, sqlitePath: string) {
-    const resolvedManifest = path.resolve(manifestPath);
-    if (!fs.existsSync(resolvedManifest)) {
-        throw new Error(`manifest.json no existe: ${resolvedManifest}`);
+export async function buildFromManifestPayload(manifestPayload: unknown, sqlitePath: string) {
+    if (!manifestPayload || typeof manifestPayload !== "object") {
+        throw new Error("Invalid manifest payload: expected JSON object.");
     }
 
-    const manifest = JSON.parse(fs.readFileSync(resolvedManifest, "utf-8")) as Manifest;
+    const manifest = manifestPayload as Manifest;
     const nodes = Object.values(manifest.nodes ?? {}) as DbtNode[];
     const models = nodes.filter((n) => n && n.resource_type === "model" && typeof n.unique_id === "string");
     const sources = (Object.values(manifest.sources ?? {}) as DbtNode[])
@@ -193,4 +194,14 @@ export async function buildFromManifest(manifestPath: string, sqlitePath: string
     } finally {
         db.close();
     }
+}
+
+export async function buildFromManifest(manifestPath: string, sqlitePath: string) {
+    const resolvedManifest = path.resolve(manifestPath);
+    if (!fs.existsSync(resolvedManifest)) {
+        throw new Error(`manifest.json no existe: ${resolvedManifest}`);
+    }
+
+    const manifest = JSON.parse(fs.readFileSync(resolvedManifest, "utf-8"));
+    await buildFromManifestPayload(manifest, sqlitePath);
 }

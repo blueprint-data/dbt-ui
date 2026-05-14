@@ -134,17 +134,15 @@ You can run dbt-ui in your CI/CD pipeline:
 
 ### Using with Docker
 
-If you're deploying with Docker, you can include dbt-ui in your Dockerfile:
+`dbt-ui` now ships with a first-party Docker deployment path.
 
-```dockerfile
-# Install Node.js and dbt-ui
-RUN npm install -g dbt-ui
+From this repository:
 
-# Generate and serve
-COPY ./target/manifest.json /app/target/
-RUN dbt-ui generate
-CMD ["dbt-ui", "serve", "--port", "8080"]
+```bash
+docker compose up --build
 ```
+
+For production image usage, runtime contract details, and secure refresh API setup, see `docs/DOCKER.md`.
 
 ---
 

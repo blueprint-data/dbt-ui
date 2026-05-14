@@ -1,6 +1,6 @@
 {
   "name": "dbt-docs-redesign",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -61,6 +61,7 @@
     "react-resizable-panels": "^2.1.7",
     "react-window": "2.2.6",
     "recharts": "2.15.4",
+    "shiki": "^4.0.2",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",

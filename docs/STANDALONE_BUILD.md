@@ -2,68 +2,43 @@
 
 ## Current Status
 
-The standalone build works correctly when run from within the monorepo. However, creating a fully portable npm package requires additional work due to pnpm's symlink-based node_modules structure.
+Standalone Next.js builds are the base artifact for both:
 
-## What Works
+1. npm package distribution (`@blueprint-data/dbt-ui`)
+2. first-party Docker image distribution (`ghcr.io/blueprint-data/dbt-ui`)
 
-### Option 1: Run from monorepo (Recommended for development)
+## Supported Deployment Paths
+
+### Option 1: Docker (recommended for deployment)
 
 ```bash
-# From the monorepo root:
+docker compose up --build
+```
+
+See [`docs/DOCKER.md`](./DOCKER.md) for runtime contract, security defaults, and refresh API guidance.
+
+### Option 2: npm CLI package
+
+```bash
+npx @blueprint-data/dbt-ui generate --manifest /absolute/path/to/target/manifest.json --skip-dbt
+npx @blueprint-data/dbt-ui serve --db ./target/dbt_ui.sqlite
+```
+
+### Option 3: Run standalone app from monorepo
+
+```bash
 cd apps/web/dbt-docs-redesign
 npm run build:standalone
-
-# Run standalone:
 DBT_UI_DB_PATH=/path/to/dbt_ui.sqlite npm run start:standalone
 ```
 
-### Option 2: Use the main dev/production server
+## Build Notes
 
-```bash
-# Development:
-npm run dev
+- `build:standalone` copies `.next/static` and `public/` into standalone output.
+- `setup:wasm` must run before build to ensure `public/sql-wasm.wasm` is present.
+- Container runtime defaults to `DBT_UI_DB_PATH=/data/dbt_ui.sqlite` and `PORT=3000`.
 
-# Production:
-npm run build
-npm run start
-```
+## Troubleshooting
 
-## Known Issues for NPM Packaging
-
-1. **pnpm symlink structure**: Next.js standalone with pnpm creates a complex symlink structure in node_modules that doesn't translate well to a portable package.
-
-2. **Missing dependencies**: When copying the standalone output, packages like `styled-jsx` and `@swc/helpers` need to be symlinked manually or installed separately.
-
-## Proposed Solution
-
-To create a truly portable npm package, we need to either:
-
-1. **Use npm instead of pnpm for the web app build** - This creates a flat node_modules structure that's easier to package.
-
-2. **Create a Docker image** - Package everything in a container for consistent deployment.
-
-3. **Use bundler** - Use a tool like pkg or vercel/ncc to bundle everything into a single executable.
-
-## Quick Start (Current Working Approach)
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/your-repo/dbt-ui.git
-cd dbt-ui
-
-# 2. Install dependencies
-pnpm install
-
-# 3. Build standalone
-npm run build:standalone
-
-# 4. Run with your database
-cd apps/web/dbt-docs-redesign
-DBT_UI_DB_PATH=/path/to/your/target/dbt_ui.sqlite npm run start:standalone
-```
-
-## Next Steps
-
-1. Consider using npm for the web app to simplify packaging
-2. Alternatively, create a Docker image for easy distribution
-3. Document the current working approach in the main README
+- If the server cannot open SQLite, confirm the mounted path matches `DBT_UI_DB_PATH`.
+- If refresh returns `503`, this is expected unless `DBT_UI_MANIFEST_REFRESH_API_KEY` is set.

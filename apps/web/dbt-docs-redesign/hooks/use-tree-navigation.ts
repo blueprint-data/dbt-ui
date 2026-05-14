@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { TreeNode, TreeMode, FlatTreeNode, ModelSummary } from "@/lib/types";
-import { getNavTree, getFocusPath, filterTree, getBreadcrumbPath, getAllModels } from "@/lib/tree-nav";
+import { getNavTree, getFocusPath, getBreadcrumbPath, getAllModels } from "@/lib/tree-nav";
 
 const STORAGE_KEY = "dbt-docs-tree-prefs";
 
@@ -13,17 +13,25 @@ interface TreePreferences {
 
 function loadPreferences(): TreePreferences {
   if (typeof window === "undefined") {
-    return { mode: "project", expandedIds: [] };
+    return { mode: "database", expandedIds: [] };
   }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored) as Partial<TreePreferences>;
+      const mode =
+        parsed.mode === "project" || parsed.mode === "database"
+          ? parsed.mode
+          : "database";
+      return {
+        mode,
+        expandedIds: Array.isArray(parsed.expandedIds) ? parsed.expandedIds : [],
+      };
     }
   } catch {
     // Ignore errors
   }
-  return { mode: "project", expandedIds: [] };
+  return { mode: "database", expandedIds: [] };
 }
 
 function savePreferences(prefs: TreePreferences) {
@@ -93,12 +101,11 @@ function findAncestorIds(nodes: TreeNode[], targetId: string): Set<string> {
 }
 
 export function useTreeNavigation(selectedModelId: string | null) {
-  const [mode, setMode] = useState<TreeMode>("project");
+  const [mode, setMode] = useState<TreeMode>("database");
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [allModels, setAllModels] = useState<ModelSummary[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [filterQuery, setFilterQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
@@ -178,29 +185,16 @@ export function useTreeNavigation(selectedModelId: string | null) {
     };
   }, [selectedModelId, mode, tree]);
 
-  // Filter tree
-  const { filteredTree, matchingIds } = useMemo(() => {
-    if (!filterQuery.trim()) {
-      return { filteredTree: tree, matchingIds: new Set<string>() };
-    }
-    return filterTree(tree, filterQuery);
-  }, [tree, filterQuery]);
-
   // Compute ancestor IDs for highlighting
   const ancestorIds = useMemo(() => {
     if (!selectedNodeId) return new Set<string>();
-    return findAncestorIds(filteredTree, selectedNodeId);
-  }, [filteredTree, selectedNodeId]);
+    return findAncestorIds(tree, selectedNodeId);
+  }, [tree, selectedNodeId]);
 
   // Flatten tree for virtualization
   const flatNodes = useMemo(() => {
-    // When filtering, expand all nodes to show matches
-    const effectiveExpanded = filterQuery.trim()
-      ? new Set([...expandedIds, ...matchingIds, ...ancestorIds])
-      : expandedIds;
-
-    return flattenTree(filteredTree, effectiveExpanded, selectedNodeId, ancestorIds);
-  }, [filteredTree, expandedIds, selectedNodeId, ancestorIds, filterQuery, matchingIds]);
+    return flattenTree(tree, expandedIds, selectedNodeId, ancestorIds);
+  }, [tree, expandedIds, selectedNodeId, ancestorIds]);
 
   // Breadcrumb path
   const breadcrumbs = useMemo(() => {
@@ -247,30 +241,37 @@ export function useTreeNavigation(selectedModelId: string | null) {
     });
   }, []);
 
-  // Reveal selected in tree (scroll to it)
-  const revealSelected = useCallback(() => {
-    if (!selectedNodeId) return -1;
-    return flatNodes.findIndex((n) => n.id === selectedNodeId);
-  }, [flatNodes, selectedNodeId]);
+  /** Expand every ancestor of `nodeId` so the node appears in the flattened project tree. */
+  const expandAncestorsOf = useCallback(
+    (nodeId: string) => {
+      if (tree.length === 0) return;
+      const ancestors = findAncestorIds(tree, nodeId);
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ancestors) {
+          next.add(id);
+        }
+        return next;
+      });
+    },
+    [tree]
+  );
 
   return {
     mode,
     setMode,
-    tree: filteredTree,
+    tree,
     flatNodes,
     expandedIds,
     selectedNodeId,
     setSelectedNodeId,
-    filterQuery,
-    setFilterQuery,
     isLoading,
     breadcrumbs,
     miniMapPosition,
     toggleNode,
     expandNode,
     collapseNode,
-    revealSelected,
-    matchingIds,
+    expandAncestorsOf,
     allModels,
   };
 }
