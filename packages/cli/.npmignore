@@ -1,0 +1,29 @@
+# Cache
+web-app/node_modules/**/.cache/
+node_modules/**/.cache/
+
+# Tests
+web-app/node_modules/**/test/
+web-app/node_modules/**/tests/
+web-app/node_modules/**/__tests__/
+web-app/node_modules/**/*.test.js
+web-app/node_modules/**/*.spec.js
+
+# Docs y metadata innecesaria
+web-app/node_modules/**/docs/
+web-app/node_modules/**/CHANGELOG.md
+web-app/node_modules/**/CHANGELOG
+web-app/node_modules/**/HISTORY.md
+web-app/node_modules/**/LICENSE
+web-app/node_modules/**/*.md
+web-app/node_modules/**/*.d.ts
+web-app/node_modules/**/*.map
+
+# Configs de desarrollo
+web-app/node_modules/**/.eslintrc*
+web-app/node_modules/**/.prettierrc*
+web-app/node_modules/**/jest.config.*
+web-app/node_modules/**/tsconfig*.json
+
+# Assets de Next.js que no se necesitan en producción
+web-app/.next/cache/
