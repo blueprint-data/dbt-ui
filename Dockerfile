@@ -5,7 +5,7 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /workspace
 ENV CI=true
 
-RUN corepack enable
+RUN corepack enable && corepack install -g pnpm@9
 
 COPY . .
 

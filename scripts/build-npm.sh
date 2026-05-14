@@ -41,7 +41,7 @@ cat > package.json << 'EOF'
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "next": "16.0.10",
+    "next": "16.2.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "sql.js": "^1.13.0"
