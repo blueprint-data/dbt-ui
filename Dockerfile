@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:20-bookworm-slim AS builder
+FROM node:22.23.4-bookworm-slim AS builder
 
 WORKDIR /workspace
 ENV CI=true
@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm run setup:wasm
 RUN pnpm --filter dbt-docs-redesign run build:standalone
 
-FROM node:20-bookworm-slim AS runner
+FROM node:22.23.4-bookworm-slim AS runner
 
 ENV NODE_ENV=production
 ENV PORT=3000
